@@ -1,0 +1,5 @@
+-- Production migration applied through Supabase management on 2026-09-24.
+-- harden_datasub_api_credential_functions
+-- Hardened create/revoke DataSub API credential SECURITY DEFINER functions with an empty search_path,
+-- explicit schema qualification, authentication checks, API-tier eligibility/ownership enforcement,
+-- and explicit execute grants only to authenticated users.
