@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
 
 type BrandIdentity = {
@@ -37,16 +37,16 @@ export function BrandIntro({ children }: { children: ReactNode }) {
   const [visible, setVisible] = useState(() => !introWasSeen(platform));
   const [progress, setProgress] = useState(0);
 
-  const close = () => {
+  const close = useCallback(() => {
     rememberIntro(platform);
     setVisible(false);
-  };
+  }, []);
 
   useEffect(() => {
     document.title = identity.documentTitle;
     const description = document.querySelector<HTMLMetaElement>('meta[name="description"]');
     if (description) description.content = identity.tagline;
-  }, [identity]);
+  }, []);
 
   useEffect(() => {
     if (!visible) return;
@@ -54,7 +54,7 @@ export function BrandIntro({ children }: { children: ReactNode }) {
     const tick = window.setInterval(() => setProgress(Math.min(100, ((Date.now() - started) / 1000) * 100)), 25);
     const finish = window.setTimeout(close, 1000);
     return () => { window.clearInterval(tick); window.clearTimeout(finish); };
-  }, [visible]);
+  }, [visible, close]);
 
   return <>{visible && <div className="fixed inset-0 z-[100] bg-white grid place-items-center overflow-hidden" role="dialog" aria-label={`${identity.name} introduction`}>
     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(21,101,216,.10),_transparent_52%)]" />
