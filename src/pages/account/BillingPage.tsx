@@ -1,0 +1,24 @@
+import { useEffect, useMemo, useState } from "react";
+import { CreditCard, ReceiptText } from "lucide-react";
+import { ModulePage } from "@/components/ModulePage";
+import { Card } from "@/components/ui/Card";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useAccountSections } from "./accountShared";
+
+type Payment={id:string;amount:number;currency:string|null;status:string;created_at:string;provider_reference:string|null};
+export function BillingPage(){
+ const {user,profile}=useAuth(); const sections=useAccountSections(); const [payments,setPayments]=useState<(Payment & {product?:string;description?:string})[]>([]),[loading,setLoading]=useState(true),[notice,setNotice]=useState("");
+ useEffect(()=>{let mounted=true;async function load(){if(!supabase||!user){setLoading(false);return;}const [business,host,datasub,school]=await Promise.all([
+ supabase.from("business_payments").select("id,amount,currency,status,created_at,provider_reference").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50),
+ supabase.from("host_payments").select("id,amount,currency,status,created_at,provider_reference").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50),
+ supabase.from("datasub_wallet_funding_requests").select("id,amount,status,created_at,payment_reference").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50),
+ supabase.from("schoolpro_payment_intents").select("id,amount,currency,status,created_at,reference").eq("payer_user_id",user.id).order("created_at",{ascending:false}).limit(50)
+]);const combined=[...(business.data||[]).map(x=>({...x,product:"Business & Innovation",description:"Service payment"})),...(host.data||[]).map(x=>({...x,product:"Hosting",description:"Hosting payment"})),...(datasub.data||[]).map(x=>({id:x.id,amount:x.amount,currency:"NGN",status:String(x.status),created_at:x.created_at,provider_reference:x.payment_reference,product:"DataSub",description:"Wallet funding"})),...(school.data||[]).map(x=>({id:x.id,amount:x.amount,currency:x.currency||"NGN",status:x.status,created_at:x.created_at,provider_reference:x.reference,product:"SchoolPro",description:"School payment"}))].sort((a,b)=>new Date(b.created_at).getTime()-new Date(a.created_at).getTime());if(mounted){setPayments(combined as (Payment & {product?:string;description?:string})[]);setNotice(business.error?.message||host.error?.message||datasub.error?.message||school.error?.message||"");setLoading(false);}}void load();return()=>{mounted=false};},[user]);
+ const paid=useMemo(()=>payments.filter(x=>x.status==="paid"||x.status==="completed").reduce((s,x)=>s+Number(x.amount||0),0),[payments]);
+ const name=[profile?.first_name,profile?.last_name].filter(Boolean).join(" ")||profile?.email||"IHLink Customer";
+ return <ModulePage product="corporate" sections={sections} title="Billing & Payments" description="Review payment activity across the IHLink services associated with your account." userName={name} userRole={profile?.role==="super_admin"||profile?.role==="platform_admin"?"IHLink Administrator":"IHLink Customer"} primaryAction="Billing">
+  <div className="grid gap-4 md:grid-cols-3"><Card><CreditCard className="h-5 w-5 text-royal-600"/><p className="mt-3 text-sm text-muted">Recorded payments</p><p className="mt-1 text-2xl font-black">{loading?"…":payments.length}</p></Card><Card><ReceiptText className="h-5 w-5 text-emerald-600"/><p className="mt-3 text-sm text-muted">Completed value</p><p className="mt-1 text-2xl font-black">₦{paid.toLocaleString("en-NG")}</p></Card><Card><p className="text-sm text-muted">Billing source</p><p className="mt-2 font-bold">Cross-platform account records</p></Card></div>
+  <Card padding="none"><div className="border-b p-5"><h3 className="font-bold">Cross-platform payment history</h3><p className="mt-1 text-xs text-muted">Only records authorized for your signed-in account are shown.</p></div>{notice&&<p className="p-4 text-sm text-rose-600">{notice}</p>}<div className="divide-y">{payments.map(p=><div key={p.id} className="grid gap-2 p-5 text-sm md:grid-cols-6"><span className="font-bold">{p.product||"IHLink"}</span><span>{p.description||"Payment"}</span><span className="font-semibold">₦{Number(p.amount).toLocaleString("en-NG")}</span><span className="capitalize">{p.status}</span><span className="text-muted">{p.provider_reference||"—"}</span><span className="text-muted">{new Date(p.created_at).toLocaleDateString("en-NG")}</span></div>)}{!loading&&!payments.length&&<p className="p-10 text-center text-sm text-muted">No billing records are associated with this account yet.</p>}</div></Card>
+ </ModulePage>;
+}
