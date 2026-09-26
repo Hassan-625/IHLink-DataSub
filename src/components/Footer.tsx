@@ -179,7 +179,7 @@ const footerLinks: Record<ProductKey, { title: string; links: { label: string; h
   ],
 };
 
-export function Footer({ product = 'corporate' }: FooterProps) {
+export function Footer({ product = 'datasub' }: FooterProps) {
   const theme = productThemes[product];
   const links = footerLinks[product];
 
