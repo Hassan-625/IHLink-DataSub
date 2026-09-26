@@ -25,7 +25,7 @@ export function AuthShell({
         <Link to="/" className="relative inline-flex items-center gap-3">
           <span className="grid h-16 w-16 place-items-center rounded-2xl bg-white p-2 shadow-lg">
             <img
-              src="/logos/ihlink-master.svg"
+              src="https://raw.githubusercontent.com/Hassan-625/IHLink_Design_System_1/main/public/logos/ihlink-master.svg"
               alt="IHLink DataSub"
               className="h-full w-full object-contain"
             />
@@ -68,7 +68,7 @@ export function AuthShell({
         <div className="w-full max-w-md">
           <div className="mb-6 flex items-center gap-2 lg:hidden">
             <img
-              src="/logos/ihlink-master.svg"
+              src="https://raw.githubusercontent.com/Hassan-625/IHLink_Design_System_1/main/public/logos/ihlink-master.svg"
               className="h-10 w-10 object-contain"
               alt="IHLink DataSub"
             />
