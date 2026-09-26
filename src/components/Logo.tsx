@@ -23,7 +23,7 @@ const sizes = {
   lg: { box: 'w-16 h-16', text: 'text-2xl', sub: 'text-sm' },
 };
 
-export function Logo({ product = 'corporate', variant = 'full', size = 'md', disableLink = false }: LogoProps) {
+export function Logo({ product = 'datasub', variant = 'full', size = 'md', disableLink = false }: LogoProps) {
   const s = sizes[size];
   const name = productNames[product];
 
