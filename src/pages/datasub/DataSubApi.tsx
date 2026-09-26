@@ -10,7 +10,7 @@ import { ServiceLogo } from '@/components/ServiceLogo';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase'; import { loadLiveCatalogue } from '@/lib/datasubCatalogue';
 import { naira } from '@/lib/designTokens';
-import { networks, cableProviders, electricityProviders } from '@/lib/mockData';
+import { networks, cableProviders, electricityProviders } from '@/lib/datasubServices';
 
 type ApiProduct = { id:string; code:string; service_type:string; provider:string; name:string; plan_category:string|null; validity_label:string|null; api_price:number };
 type ApiCredential = { key_prefix:string; status:string; mode:string };
@@ -85,3 +85,4 @@ export function DataSubApi(){
   </main>
  </PageShell>;
 }
+

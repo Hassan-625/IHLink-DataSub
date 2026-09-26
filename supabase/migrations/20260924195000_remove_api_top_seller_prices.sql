@@ -1,0 +1,1 @@
+update public.datasub_upgrade_offers set base_price=0,updated_at=now() where code in ('api_developer','top_seller');

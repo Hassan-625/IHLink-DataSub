@@ -47,7 +47,7 @@ const popularArticles = [
 
 export function DataSubSupport() {
   return (
-    <PageShell product="datasub">
+    <PageShell>
       <section className="py-12 bg-gradient-to-br from-emerald-50 to-sky-50">
         <div className="px-6 lg:px-10 max-w-[1280px] mx-auto text-center">
           <Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">
@@ -155,7 +155,7 @@ export function DataSubSupport() {
                 Send a Message
               </h2>
               <SupportTicketForm
-                product="datasub"
+               
                 accentClass="bg-emerald-500 hover:bg-emerald-600"
               />
             </Card>

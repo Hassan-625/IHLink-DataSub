@@ -4,69 +4,89 @@ import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-type SupportProduct =
-  | "corporate"
-  | "datasub"
-  | "schoolpro"
-  | "consult"
-  | "host"
-  | "engineering"
-  | "account";
-
 export function SupportTicketForm({
-  product,
-  accentClass = "bg-royal-600 hover:bg-royal-700",
+  accentClass = "bg-emerald-600 hover:bg-emerald-700",
 }: {
-  product: SupportProduct;
   accentClass?: string;
 }) {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     subject: "",
     category: "general",
     priority: "normal",
     message: "",
   });
+
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+
   const field =
-    "w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-royal-500";
+    "w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500";
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+
     if (!user) {
-      navigate("/signin", { state: { from: window.location.pathname } });
+      navigate("/signin", {
+        state: { from: window.location.pathname },
+      });
       return;
     }
-    if (!supabase) return;
+
+    if (!supabase) {
+      setNotice("Support is temporarily unavailable.");
+      return;
+    }
+
     setBusy(true);
     setNotice("");
-    const { data, error } = await supabase
-      .from("support_tickets")
-      .insert({ ...form, product, user_id: user.id })
-      .select("ticket_number")
-      .single();
-    setBusy(false);
-    if (error) setNotice(error.message);
-    else {
-      setNotice(`Ticket ${data.ticket_number} was created successfully.`);
+
+    try {
+      const { data, error } = await supabase
+        .from("support_tickets")
+        .insert({
+          ...form,
+          product: "datasub",
+          user_id: user.id,
+        })
+        .select("ticket_number")
+        .single();
+
+      if (error) {
+        setNotice(error.message);
+        return;
+      }
+
+      setNotice(
+        `Ticket ${data.ticket_number} was created successfully.`
+      );
+
       setForm({
         subject: "",
         category: "general",
         priority: "normal",
         message: "",
       });
+    } catch {
+      setNotice("Unable to create the support ticket. Please try again.");
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
     <form onSubmit={submit} className="space-y-3">
       {notice && (
-        <div className="rounded-xl border bg-slate-50 p-3 text-sm">
+        <div
+          role="status"
+          className="rounded-xl border bg-slate-50 p-3 text-sm"
+        >
           {notice}
         </div>
       )}
+
       <label className="block text-sm font-bold">
         Subject
         <input
@@ -79,6 +99,7 @@ export function SupportTicketForm({
           placeholder="Brief description"
         />
       </label>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block text-sm font-bold">
           Category
@@ -90,12 +111,13 @@ export function SupportTicketForm({
             }
           >
             <option value="general">General support</option>
-            <option value="account">Account & access</option>
-            <option value="billing">Billing & payment</option>
+            <option value="account">Account &amp; access</option>
+            <option value="billing">Billing &amp; payment</option>
             <option value="technical">Technical issue</option>
             <option value="service">Service request</option>
           </select>
         </label>
+
         <label className="block text-sm font-bold">
           Priority
           <select
@@ -112,6 +134,7 @@ export function SupportTicketForm({
           </select>
         </label>
       </div>
+
       <label className="block text-sm font-bold">
         Message
         <textarea
@@ -125,7 +148,13 @@ export function SupportTicketForm({
           placeholder="Describe the issue, what you expected, and any error shown"
         />
       </label>
-      <Button type="submit" fullWidth disabled={busy} themeClass={accentClass}>
+
+      <Button
+        type="submit"
+        fullWidth
+        disabled={busy}
+        themeClass={accentClass}
+      >
         {busy
           ? "Creating ticket…"
           : user

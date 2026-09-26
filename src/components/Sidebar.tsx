@@ -123,7 +123,7 @@ export function DashboardLayout({
           <div className="flex items-center gap-4">
             <div>
               <div className="flex items-center gap-2 text-xs text-muted">
-                <Link to={`/${product === 'corporate' ? '' : product}`} className="hover:underline">{theme.name}</Link>
+                <Link to={`/${false ? '' : product}`} className="hover:underline">{theme.name}</Link>
                 {pageBreadcrumb?.map((crumb, i) => (
                   <span key={i} className="flex items-center gap-2">
                     <span>/</span>

@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { ServiceLogo } from '@/components/ServiceLogo';
-import { networks } from '@/lib/mockData';
+import { networks } from '@/lib/datasubServices';
 import { naira } from '@/lib/designTokens';
 import { ArrowRightLeft, ShieldCheck } from 'lucide-react';
 

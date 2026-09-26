@@ -14,7 +14,7 @@ interface PageShellProps {
 }
 
 export function PageShell({
-  product = 'corporate',
+  product = 'datasub',
   children,
   showHeader = true,
   showFooter = true,
