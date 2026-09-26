@@ -48,11 +48,11 @@ export function DataSubHome() {
         <div className="relative px-6 lg:px-10 pt-16 pb-20 max-w-[1280px] mx-auto">
           <div className="grid grid-cols-12 gap-8 items-center">
             <div className="col-span-12 lg:col-span-7">
-              <Badge className="bg-white/10 text-white border-white/20 mb-4">{hero?.eyebrow || 'VTU & Digital Services'}</Badge>
-              <h1 className="text-5xl font-extrabold mb-4 leading-tight">{hero?.title || 'Airtime, Data, Bills & More â€” All in One Place'}</h1>
-              <p className="text-lg text-emerald-50 mb-6 max-w-xl">{hero?.body || 'Instant airtime top-up, data bundles, electricity bills, cable TV subscriptions and educational PINs. Built for convenient digital-service access in Nigeria.'}</p>
+              <Badge className="bg-white/10 text-white border-white/20 mb-4">VTU & Digital Services</Badge>
+              <h1 className="text-5xl font-extrabold mb-4 leading-tight">Airtime, Data, Bills & More — All in One Place</h1>
+              <p className="text-lg text-emerald-50 mb-6 max-w-xl">Instant airtime top-up, data bundles, electricity bills, cable TV subscriptions and educational PINs. Built for convenient digital-service access in Nigeria.</p>
               <div className="flex flex-wrap gap-4">
-                <Link to={hero?.cta_link || '/datasub/dashboard'}><Button size="xl" variant="secondary" className="!bg-white !text-emerald-700 hover:!bg-emerald-50 border-white">{hero?.cta_label || 'Get Started'}</Button></Link>
+                <Link to={'/datasub/dashboard'}><Button size="xl" variant="secondary" className="!bg-white !text-emerald-700 hover:!bg-emerald-50 border-white">Get Started</Button></Link>
                 <Link to="/datasub/pricing"><Button size="xl" variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">View Pricing</Button></Link>
               </div>
             </div>
