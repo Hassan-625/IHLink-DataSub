@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 
 import { AuthShell } from "./AuthShell";
 import { Input, Select, Checkbox } from "@/components/ui/Input";
@@ -98,17 +98,6 @@ export function RegisterPage() {
       title="Create your DataSub account"
       subtitle="Join IHLink DataSub as a Smart Earner and access digital services from one account."
     >
-      {!configured && (
-        <div className="mb-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-
-          <span>
-            Registration is temporarily unavailable because
-            the account service is not configured in this
-            deployment.
-          </span>
-        </div>
-      )}
 
       <form
         onSubmit={submit}
