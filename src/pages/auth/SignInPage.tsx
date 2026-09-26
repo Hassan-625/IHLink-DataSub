@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { AlertCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { AuthShell } from "./AuthShell";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
@@ -148,16 +148,6 @@ export function SignInPage() {
       title="Welcome back"
       subtitle="Sign in to your IHLink DataSub account."
     >
-      {!configured && (
-        <div className="mb-4 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-          <AlertCircle className="h-5 w-5 shrink-0" />
-
-          <span>
-            The secure account service is prepared and awaiting
-            its production Supabase credentials.
-          </span>
-        </div>
-      )}
 
       {authNotice && (
         <p className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
