@@ -579,6 +579,10 @@ export default function App() {
             }
           />
 
+          <Route path="/admin/access-denied" element={<Navigate to="/account" replace />} />
+          <Route path="/admin/notifications" element={<Navigate to="/account/notifications" replace />} />
+          <Route path="/admin/settings" element={<Navigate to="/account/security" replace />} />
+
           {/* ==================================================
               404
           ================================================== */}
