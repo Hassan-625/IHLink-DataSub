@@ -19,7 +19,7 @@ create table public.profiles (
 create table public.admin_product_access (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.profiles(id) on delete cascade,
-  product text not null check (product in ('corporate','datasub','schoolpro','consult','host','engineering')),
+  product text not null check (product = 'datasub'),
   can_view boolean not null default true,
   can_edit boolean not null default false,
   can_approve boolean not null default false,
