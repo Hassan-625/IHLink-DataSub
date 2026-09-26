@@ -25,7 +25,7 @@ export interface UserProfile {
   status: "active" | "suspended" | "invited";
   created_at?: string;
 }
-export type ProductKey = "corporate" | "datasub" | "schoolpro" | "consult" | "host" | "engineering" | "business_centre" | "print" | "fabrication" | "compute" | "academy" | "digital_business";
+export type ProductKey = "datasub";
 export interface AdminProductAccess { product: ProductKey; can_view: boolean; can_edit: boolean; can_approve: boolean; can_delete: boolean; can_manage: boolean; can_use_website_builder: boolean; can_use_command_center: boolean; }
 export interface CustomerServiceAccess { product: ProductKey; status: "active" | "pending" | "suspended"; plan_name: string | null; }
 
