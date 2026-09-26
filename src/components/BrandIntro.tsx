@@ -10,7 +10,7 @@ type BrandIdentity = {
 };
 
 const platform = 'datasub' as const;
-const identity: BrandIdentity = { name: 'IHLink DataSub', tagline: 'Smart digital services, connected', logo: '/logos/datasub.webp', documentTitle: 'IHLink DataSub' };
+const identity: BrandIdentity = { name: 'IHLink DataSub', tagline: 'Smart digital services, connected', logo: 'https://raw.githubusercontent.com/Hassan-625/IHLink_Design_System_1/main/public/logos/datasub.webp', documentTitle: 'IHLink DataSub' };
 
 function introKey(platform: 'datasub') {
   return `ihlink-intro-seen:${platform}`;
