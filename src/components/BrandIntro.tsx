@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { deployedPlatform, type PlatformKey } from '@/lib/platformUrls';
+
 
 type BrandIdentity = {
   name: string;
@@ -9,27 +9,14 @@ type BrandIdentity = {
   documentTitle: string;
 };
 
-const identities: Record<PlatformKey, BrandIdentity> = {
-  corporate: { name: 'IHLink', qualifier: 'CO. LTD.', tagline: 'Connecting your digital world', logo: '/logos/ihlink-master.svg', documentTitle: 'IHLink Co. Ltd.' },
-  datasub: { name: 'IHLink DataSub', tagline: 'Smart digital services, connected', logo: '/logos/datasub.webp', documentTitle: 'IHLink DataSub' },
-  schoolpro: { name: 'IHLink SchoolPro', tagline: 'Smarter school management', logo: '/logos/schoolpro.webp', documentTitle: 'IHLink SchoolPro' },
-  consult: { name: 'IHLink Consult', tagline: 'Technology expertise for your next move', logo: '/logos/consult.webp', documentTitle: 'IHLink Consult' },
-  engineering: { name: 'IHLink Engineering', tagline: 'Engineering intelligent systems', logo: '/logos/engineering.webp', documentTitle: 'IHLink Engineering' },
-  host: { name: 'IHLink Hosting & Domains', tagline: 'Your digital presence starts here', logo: '/logos/hosting-domains.webp', documentTitle: 'IHLink Hosting & Domains' },
-  admin: { name: 'IHLink Administration', tagline: 'Ecosystem control centre', logo: '/logos/ihlink-master.svg', documentTitle: 'IHLink Administration' },
-  business_centre: { name: 'IHLink Business & Innovation Centre', tagline: 'Ideas, services and enterprise', logo: '/logos/business-innovation-centre.webp', documentTitle: 'IHLink Business & Innovation Centre' },
-  print: { name: 'IHLink Print & Branding', tagline: 'Print, identity and brand execution', logo: '/logos/print-branding.webp', documentTitle: 'IHLink Print & Branding' },
-  fabrication: { name: 'IHLink 3D Fabrication Lab', tagline: 'Design, prototype and fabricate', logo: '/logos/3d-fabrication.webp', documentTitle: 'IHLink 3D Fabrication Lab' },
-  compute: { name: 'IHLink AI & Compute', tagline: 'Intelligent computing for modern business', logo: '/logos/ai-compute.webp', documentTitle: 'IHLink AI & Compute' },
-  academy: { name: 'IHLink Academy', tagline: 'Learn practical technology skills', logo: '/logos/academy.webp', documentTitle: 'IHLink Academy' },
-  digital_business: { name: 'IHLink Digital Services', tagline: 'Digital tools for business growth', logo: '/logos/digital-service.webp', documentTitle: 'IHLink Digital Services' },
-};
+const platform = 'datasub' as const;
+const identity: BrandIdentity = { name: 'IHLink DataSub', tagline: 'Smart digital services, connected', logo: '/logos/datasub.webp', documentTitle: 'IHLink DataSub' };
 
-function introKey(platform: PlatformKey) {
+function introKey(platform: 'datasub') {
   return `ihlink-intro-seen:${platform}`;
 }
 
-function introWasSeen(platform: PlatformKey) {
+function introWasSeen(platform: 'datasub') {
   try {
     return window.sessionStorage.getItem(introKey(platform)) === 'yes';
   } catch {
@@ -37,7 +24,7 @@ function introWasSeen(platform: PlatformKey) {
   }
 }
 
-function rememberIntro(platform: PlatformKey) {
+function rememberIntro(platform: 'datasub') {
   try {
     window.sessionStorage.setItem(introKey(platform), 'yes');
   } catch {
@@ -47,8 +34,6 @@ function rememberIntro(platform: PlatformKey) {
 }
 
 export function BrandIntro({ children }: { children: ReactNode }) {
-  const platform = deployedPlatform;
-  const identity = identities[platform] ?? identities.corporate;
   const [visible, setVisible] = useState(() => !introWasSeen(platform));
   const [progress, setProgress] = useState(0);
 
