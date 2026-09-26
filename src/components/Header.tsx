@@ -133,7 +133,7 @@ interface HeaderProps {
   announcementText?: string;
 }
 
-export function Header({ product = 'corporate', showAnnouncement = true, announcementText }: HeaderProps) {
+export function Header({ product = 'datasub', showAnnouncement = true, announcementText }: HeaderProps) {
   const theme = productThemes[product];
   const nav = productNavs[product];
   const location = useLocation();
@@ -142,7 +142,7 @@ export function Header({ product = 'corporate', showAnnouncement = true, announc
   const [openDivision, setOpenDivision] = useState<string | null>(null);
 
   const isActive = (href: string) => {
-    if (href === '/' && product !== 'corporate') return false;
+    if (href === '/') return location.pathname === '/';
     return location.pathname === href || (href !== '/' && location.pathname.startsWith(href));
   };
 
