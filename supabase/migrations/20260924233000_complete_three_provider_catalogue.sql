@@ -1,6 +1,45 @@
 -- Complete unified DataSub catalogue/routing foundation for CashSub, DataStation and Legitdataway.
 -- Provider credentials remain server-side; customer catalogue stays provider-agnostic.
 
+-- Materialize canonical customer-facing catalogue rows required by the exact provider mappings below.
+insert into public.datasub_products(code,service_type,provider,name,description,provider_cost,retail_price,reseller_price,api_price,routing_priority,is_active,metadata,plan_category,validity_label,sort_order)
+values
+('MTN_500MB_SME_30D','data','MTN','500MB SME','MTN SME data bundle',265,265,265,265,10,true,'{}','sme','30 Days',10),
+('MTN_1GB_SME_7D','data','MTN','1GB SME','MTN SME data bundle',380,380,380,380,10,true,'{}','sme','7 Days',20),
+('MTN_1GB_SME_30D_USER','data','MTN','1GB SME 30 Days','MTN SME data bundle',520,520,520,520,10,true,'{}','sme','30 Days',30),
+('MTN_2GB_SME_30D','data','MTN','2GB SME','MTN SME data bundle',840,840,840,840,10,true,'{}','sme','30 Days',40),
+('MTN_3GB_SME_30D','data','MTN','3GB SME','MTN SME data bundle',1260,1260,1260,1260,10,true,'{}','sme','30 Days',50),
+('MTN_5GB_SME_30D','data','MTN','5GB SME','MTN SME data bundle',1800,1800,1800,1800,10,true,'{}','sme','30 Days',60),
+('MTN_1GB_CORP_24H','data','MTN','1GB Corporate Gifting 24H','MTN corporate gifting',219,219,219,219,10,true,'{}','corporate_gifting','24 Hours',70),
+('MTN_1GB_CORP_30D_USER','data','MTN','1GB Corporate Gifting','MTN corporate gifting',210,210,210,210,10,true,'{}','corporate_gifting','30 Days',80),
+('MTN_2GB_CORP_30D_USER','data','MTN','2GB Corporate Gifting','MTN corporate gifting',425,425,425,425,10,true,'{}','corporate_gifting','30 Days',90),
+('MTN_3GB_CORP_30D_USER','data','MTN','3GB Corporate Gifting','MTN corporate gifting',630,630,630,630,10,true,'{}','corporate_gifting','30 Days',100),
+('MTN_5GB_CORP_30D_USER','data','MTN','5GB Corporate Gifting','MTN corporate gifting',1025,1025,1025,1025,10,true,'{}','corporate_gifting','30 Days',110),
+('MTN_75MB_GIFT_1D_USER','data','MTN','75MB Gifting','MTN gifting bundle',73.5,73.5,73.5,73.5,10,true,'{}','gifting','1 Day',120),
+('MTN_1GB_GIFT_1D_USER','data','MTN','1GB Gifting','MTN gifting bundle',490,490,490,490,10,true,'{}','gifting','1 Day',130),
+('MTN_1_5GB_GIFT_2D_USER','data','MTN','1.5GB Gifting','MTN gifting bundle',588,588,588,588,10,true,'{}','gifting','2 Days',140),
+('MTN_2GB_GIFT_2D_USER','data','MTN','2GB Gifting','MTN gifting bundle',735,735,735,735,10,true,'{}','gifting','2 Days',150),
+('MTN_2_5GB_GIFT_2D_USER','data','MTN','2.5GB Gifting','MTN gifting bundle',882,882,882,882,10,true,'{}','gifting','2 Days',160),
+('MTN_3_2GB_GIFT_2D_USER','data','MTN','3.2GB Gifting','MTN gifting bundle',980,980,980,980,10,true,'{}','gifting','2 Days',170),
+('MTN_2_7GB_GIFT_30D_USER','data','MTN','2.7GB Gifting','MTN gifting bundle',1960,1960,1960,1960,10,true,'{}','gifting','30 Days',180),
+('MTN_3_5GB_GIFT_30D_USER','data','MTN','3.5GB Gifting','MTN gifting bundle',2450,2450,2450,2450,10,true,'{}','gifting','30 Days',190),
+('GLO_200MB_CORP_30D_USER','data','Glo','200MB Corporate Gifting','Glo corporate gifting',85,85,85,85,10,true,'{}','corporate_gifting','30 Days',200),
+('GLO_500MB_CORP_30D_USER','data','Glo','500MB Corporate Gifting','Glo corporate gifting',195,195,195,195,10,true,'{}','corporate_gifting','30 Days',210),
+('GLO_1GB_CORP_30D_USER','data','Glo','1GB Corporate Gifting','Glo corporate gifting',390,390,390,390,10,true,'{}','corporate_gifting','30 Days',220),
+('GLO_2GB_CORP_30D_USER','data','Glo','2GB Corporate Gifting','Glo corporate gifting',780,780,780,780,10,true,'{}','corporate_gifting','30 Days',230),
+('GLO_3GB_CORP_30D_USER','data','Glo','3GB Corporate Gifting','Glo corporate gifting',1170,1170,1170,1170,10,true,'{}','corporate_gifting','30 Days',240),
+('GLO_5GB_CORP_30D_USER','data','Glo','5GB Corporate Gifting','Glo corporate gifting',1950,1950,1950,1950,10,true,'{}','corporate_gifting','30 Days',250),
+('GLO_10GB_CORP_30D_USER','data','Glo','10GB Corporate Gifting','Glo corporate gifting',3900,3900,3900,3900,10,true,'{}','corporate_gifting','30 Days',260),
+('AIRTEL_1_2GB_CORP_7D_USER','data','Airtel','1.2GB Corporate Gifting','Airtel corporate gifting',192,192,192,192,10,true,'{}','corporate_gifting','7 Days',270),
+('AIRTEL_2GB_CORP_7D_USER','data','Airtel','2GB Corporate Gifting','Airtel corporate gifting',288,288,288,288,10,true,'{}','corporate_gifting','7 Days',280),
+('AIRTEL_3_2GB_CORP_7D_USER','data','Airtel','3.2GB Corporate Gifting 7D','Airtel corporate gifting',480,480,480,480,10,true,'{}','corporate_gifting','7 Days',290),
+('AIRTEL_3_2GB_CORP_30D_USER','data','Airtel','3.2GB Corporate Gifting 30D','Airtel corporate gifting',480,480,480,480,10,true,'{}','corporate_gifting','30 Days',300),
+('AIRTEL_6_5GB_CORP_14D_USER','data','Airtel','6.5GB Corporate Gifting','Airtel corporate gifting',960,960,960,960,10,true,'{}','corporate_gifting','14 Days',310),
+('AIRTEL_20GB_CORP_30D_USER','data','Airtel','20GB Corporate Gifting','Airtel corporate gifting',2880,2880,2880,2880,10,true,'{}','corporate_gifting','30 Days',320),
+('T2_1_1GB_SME_30D_USER','data','T2','1.1GB SME','T2 SME data bundle',390,390,390,390,10,true,'{}','sme','30 Days',330),
+('T2_2GB_SME_30D_USER','data','T2','2GB SME','T2 SME data bundle',750,750,750,750,10,true,'{}','sme','30 Days',340)
+on conflict(code) do update set provider=excluded.provider,name=excluded.name,plan_category=excluded.plan_category,validity_label=excluded.validity_label,is_active=true,updated_at=now();
+
 -- Amount-based airtime products.
 insert into public.datasub_products(code,service_type,provider,name,description,provider_cost,retail_price,reseller_price,api_price,routing_priority,is_active,metadata,plan_category,validity_label,sort_order)
 values
