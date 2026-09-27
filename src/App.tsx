@@ -3,6 +3,8 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { ToastProvider } from "@/components/ui/Toast";
 import { BrandIntro } from "@/components/BrandIntro";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { DataSubPermissionGate } from "@/components/DataSubPermissionGate";
+import { DataSubAccessDenied } from "@/pages/datasub/DataSubAccessDenied";
 
 /* ============================================================
    DataSub Public Pages
@@ -437,7 +439,7 @@ export default function App() {
                 product="datasub"
                 requireServiceAccess
               >
-                <DataSubResellerDashboard />
+                <DataSubPermissionGate permission="reseller"><DataSubResellerDashboard /></DataSubPermissionGate>
               </ProtectedRoute>
             }
           />
@@ -465,10 +467,17 @@ export default function App() {
                 product="datasub"
                 requireServiceAccess
               >
-                <DataSubApiDashboard />
+                <DataSubPermissionGate permission="api"><DataSubApiDashboard /></DataSubPermissionGate>
               </ProtectedRoute>
             }
           />
+
+          <Route path="/datasub/profile" element={<ProtectedRoute product="datasub" requireServiceAccess><ProfilePage /></ProtectedRoute>} />
+          <Route path="/datasub/notifications" element={<ProtectedRoute product="datasub" requireServiceAccess><NotificationsPage /></ProtectedRoute>} />
+          <Route path="/datasub/support-centre" element={<ProtectedRoute product="datasub" requireServiceAccess><AccountSupportPage /></ProtectedRoute>} />
+          <Route path="/datasub/contact" element={<DataSubSupport />} />
+          <Route path="/datasub/security" element={<ProtectedRoute product="datasub" requireServiceAccess><AccountSecurityPage /></ProtectedRoute>} />
+          <Route path="/datasub/access-denied" element={<DataSubAccessDenied />} />
 
           {/* ==================================================
               CUSTOMER ACCOUNT
@@ -579,9 +588,9 @@ export default function App() {
             }
           />
 
-          <Route path="/admin/access-denied" element={<Navigate to="/account" replace />} />
-          <Route path="/admin/notifications" element={<Navigate to="/account/notifications" replace />} />
-          <Route path="/admin/settings" element={<Navigate to="/account/security" replace />} />
+          <Route path="/admin/access-denied" element={<Navigate to="/datasub/access-denied" replace />} />
+          <Route path="/admin/notifications" element={<Navigate to="/datasub/notifications" replace />} />
+          <Route path="/admin/settings" element={<Navigate to="/datasub/security" replace />} />
 
           {/* ==================================================
               404
