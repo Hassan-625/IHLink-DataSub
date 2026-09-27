@@ -34,7 +34,7 @@ export function DataSubTransactions() {
   const navigate=useNavigate();
   useEffect(()=>setPage(1),[search,typeFilter,statusFilter]);
   const repeat=(item:DataSubTransaction)=>{const type=item.type.toLowerCase();const route=type.includes('cable')?'/datasub/pay-cable':type.includes('education')?'/datasub/buy-education':type.includes('electric')?'/datasub/pay-electricity':type.includes('data')?'/datasub/buy-data':'/datasub/buy-airtime';navigate(`${route}?provider=${encodeURIComponent(item.service)}&recipient=${encodeURIComponent(item.recipient)}`);};
-  const printReceipt=()=>{window.print();showToast('success','Receipt ready','Use your browser print dialog to save the receipt as PDF.');};
+  const printReceipt=()=>{window.print();};
   const { transactions, loading, error, refresh, userName } = useDataSubData();
   const filtered = useMemo(() => transactions.filter(t => {
     const query = search.toLowerCase();
@@ -125,7 +125,7 @@ export function DataSubTransactions() {
       <Modal open={receiptOpen} onClose={() => setReceiptOpen(false)} title="Transaction Receipt" size="sm"
         footer={<><Button variant="secondary" onClick={() => setReceiptOpen(false)}>Close</Button><Button themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Download className="w-4 h-4" />} onClick={printReceipt}>Download PDF</Button></>}>
         {selected && (
-          <div className="space-y-4">
+          <div className="print-document space-y-4 bg-white p-4 text-slate-900">
             <div className="text-center pb-4 border-b border-border">
               <p className="text-lg font-extrabold text-ink">IHLink DataSub</p>
               <p className="text-xs text-muted">Transaction Receipt</p>
