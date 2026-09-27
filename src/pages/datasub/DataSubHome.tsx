@@ -12,6 +12,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useEffect, useState } from 'react';
 import { ServiceLogo } from '@/components/ServiceLogo';
 import { ExperiencePhoto } from '@/components/ExperiencePhoto';
+import { IH_LINK_LOGO } from '@/assets/ihlinkLogo';
 import {
   Smartphone, Wifi, Zap, Tv, GraduationCap, Shield,
   Users, Code, Check, ArrowRightLeft, Printer,
@@ -58,7 +59,7 @@ export function DataSubHome() {
             </div>
             <div className="col-span-12 lg:col-span-5">
               {/* Quick purchase widget */}
-              <Card padding="lg" className="bg-white/95 backdrop-blur">
+              <Card padding="lg" className="bg-white/95 backdrop-blur"><div className="mb-4 flex items-center gap-2 border-b border-emerald-100 pb-3"><img src={IH_LINK_LOGO} alt="IHLink" className="h-9 w-9 rounded-lg object-contain"/><div><b className="block text-sm text-ink">IHLink DataSub</b><span className="text-xs text-muted">Smart digital services</span></div></div>
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-xs text-muted">Wallet Balance</p>
