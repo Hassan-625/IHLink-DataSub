@@ -15,6 +15,7 @@ interface NavItem {
 
 const nav: NavItem[] = [
   { label: 'Home', href: '/datasub' },
+  { label: 'Dashboard', href: '/account' },
   { label: 'Airtime', href: '/datasub/airtime' },
   { label: 'Data Plans', href: '/datasub/data-plans' },
   { label: 'Electricity', href: '/datasub/electricity' },
@@ -26,9 +27,9 @@ const nav: NavItem[] = [
     { label: 'Education PINs', href: '/datasub/education', description: 'Education and examination services' },
     { label: 'Airtime to Cash', href: '/datasub/airtime-to-cash', description: 'Convert supported airtime' },
     { label: 'Print Cards', href: '/datasub/print-cards', description: 'Printable voucher card batches' },
-    { label: 'Wallet', href: '/datasub/wallet', description: 'Funding and wallet activity' },
+    { label: 'Wallet & Payments', href: '/datasub/wallet', description: 'Funding, payment and wallet activity' },
     { label: 'Transactions', href: '/datasub/transactions', description: 'Transaction history and receipts' },
-    { label: 'Support', href: '/datasub/support', description: 'Help and service support' },
+    { label: 'Get in Touch', href: '/datasub/support', description: 'Support, enquiries and service assistance' },
   ]},
 ];
 
