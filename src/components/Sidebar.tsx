@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, LogOut, Settings, Bell, Search } from 'lucide-react';
+import { ChevronDown, LogOut, Settings, Bell, Search, LayoutDashboard, Wallet, ReceiptText, Grid3X3, Wrench, Smartphone, Wifi, Zap, Tv, GraduationCap, ArrowRightLeft, Printer } from 'lucide-react';
 import { Logo } from './Logo';
 import { Avatar } from '@/components/ui/Stepper';
 import { productThemes, type ProductKey } from '@/lib/designTokens';
@@ -50,7 +50,31 @@ export function DashboardLayout({
   const { signOut, profile } = useAuth();
   const roleKey = String(profile?.role || '');
   const ds=useDataSubPermissions();
-  const visibleSections=product==='datasub'?sections.map(s=>({...s,items:s.items.filter(i=>{if(i.href.includes('api-dashboard'))return ds.can('api');if(i.href.includes('reseller-dashboard'))return ds.can('reseller');return true})})).filter(s=>s.items.length):sections;
+  const dataSubSections: SidebarSection[] = [
+    { title: 'Main', items: [
+      { label:'Dashboard',href:'/datasub/dashboard',icon:<LayoutDashboard className="w-4 h-4"/> },
+      { label:'Wallet',href:'/datasub/wallet',icon:<Wallet className="w-4 h-4"/> },
+      { label:'Transactions',href:'/datasub/transactions',icon:<ReceiptText className="w-4 h-4"/> },
+      { label:'All Services',href:'/datasub/services',icon:<Grid3X3 className="w-4 h-4"/> },
+      { label:'Customer Tools',href:'/datasub/customer-tools',icon:<Wrench className="w-4 h-4"/> },
+    ]},
+    { title:'Services', items:[
+      {label:'Buy Airtime',href:'/datasub/buy/airtime',icon:<Smartphone className="w-4 h-4"/>},
+      {label:'Buy Data',href:'/datasub/buy/data',icon:<Wifi className="w-4 h-4"/>},
+      {label:'Pay Electricity',href:'/datasub/buy/electricity',icon:<Zap className="w-4 h-4"/>},
+      {label:'Pay Cable',href:'/datasub/buy/cable',icon:<Tv className="w-4 h-4"/>},
+      {label:'Education PIN',href:'/datasub/buy/education',icon:<GraduationCap className="w-4 h-4"/>},
+      {label:'Airtime to Cash',href:'/datasub/airtime-to-cash',icon:<ArrowRightLeft className="w-4 h-4"/>},
+      {label:'Print Cards',href:'/datasub/print-cards',icon:<Printer className="w-4 h-4"/>},
+    ]},
+    { title:'Account', items:[
+      {label:'Notifications',href:'/datasub/notifications',icon:<Bell className="w-4 h-4"/>},
+      {label:'Profile & Settings',href:'/datasub/profile',icon:<Settings className="w-4 h-4"/>},
+      {label:'Support',href:'/datasub/support',icon:<Wrench className="w-4 h-4"/>},
+    ]}
+  ];
+  const sourceSections=product==='datasub'?dataSubSections:sections;
+  const visibleSections=product==='datasub'?sourceSections.map(s=>({...s,items:s.items.filter(i=>{if(i.href.includes('api-dashboard'))return ds.can('api');if(i.href.includes('reseller-dashboard'))return ds.can('reseller');return true})})).filter(s=>s.items.length):sourceSections;
   const canSeeAdministration = ['super_admin', 'platform_admin', 'content_admin'].includes(roleKey);
   const searchableItems = visibleSections.flatMap((section) => section.items).filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
   const handleSignOut = async () => { await signOut(); navigate('/signin'); };
