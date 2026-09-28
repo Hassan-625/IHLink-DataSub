@@ -52,9 +52,9 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const { showToast } = useToast();
   const {wallet,userName,refresh}=useDataSubData();
   const {priceFor}=useDataSubTier();
-  useEffect(()=>{setProvider(params.get('provider')||'');setRecipient(params.get('recipient')||'');setAmount(params.get('amount')||'');setSelection(params.get('product')||'');},[params,service]);
+  useEffect(()=>{setProvider(params.get('provider')||'');setRecipient(params.get('recipient')||'');setAmount(params.get('amount')||'');setSelection(params.get('product_id')||'');},[params,service]);
   useEffect(()=>{if(supabase)void supabase.rpc("datasub_has_transaction_pin").then(r=>setHasTransactionPin(Boolean(r.data)));},[]);
-  useEffect(()=>{async function loadProducts(){if(!supabase)return;const rows=await loadLiveCatalogue(service);setLiveProducts(rows);const requested=params.get('product');const selected=rows.find(row=>row.name===requested);if(selected){setProvider(selected.provider);setSelection(selected.name);setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
+  useEffect(()=>{async function loadProducts(){if(!supabase)return;const rows=await loadLiveCatalogue(service);setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.name);setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
 
   const canContinue=()=>{if(step===0&&!provider){showToast('error','Select a service','Choose a provider or network before continuing.');return false;}if(step===1&&recipient.trim().length<5){showToast('error','Enter valid details','Enter a valid recipient, meter, IUC or phone number.');return false;}if(step===2){if((service==='data'||service==='cable'||service==='education')&&!selection){showToast('error','Select a product',`Choose a ${service==='data'?'plan':service==='cable'?'package':'product'} before continuing.`);return false;}if((service==='airtime'||service==='electricity')&&(!Number.isFinite(Number(amount))||Number(amount)<=0)){showToast('error','Enter an amount','Enter a valid amount before continuing.');return false;}}if(step===4&&!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return false;}return true;};
 
@@ -62,7 +62,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
     if(!supabase)return;
     const value=Number(amount);
     const chosen=(service==='data'||service==='cable'||service==='education')
-      ? liveProducts.find(p=>p.name===selection)
+      ? liveProducts.find(p=>p.id===selection)
       : liveProducts.find(p=>p.provider===provider && (service!=='electricity'||p.plan_category===String(params.get('meterType')||'prepaid').toLowerCase())) || liveProducts.find(p=>p.provider===provider);
     if(!provider||recipient.trim().length<5||!Number.isFinite(value)||value<=0){showToast('error','Incomplete transaction','Select a provider and enter valid recipient and amount details.');return;}
     if(!/^\\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return;}
@@ -175,7 +175,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 {service === 'data' || service === 'cable' || service === 'education' ? (
                   <div className="grid grid-cols-2 gap-3">
                     {liveProducts.filter(p=>!provider||p.provider===provider).map((p) => (
-                      <button onClick={()=>{setSelection(p.name);setAmount(String(priceFor(p)));}} key={p.id} className={`p-4 rounded-xl border-2 text-left ${selection===p.name?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
+                      <button onClick={()=>{setSelection(p.id);setAmount(String(priceFor(p)));}} key={p.id} className={`p-4 rounded-xl border-2 text-left ${selection===p.id?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
                         <p className="text-base font-bold text-ink">{p.name}</p>
                         <p className="text-xs text-muted">{p.description||p.provider}{p.validity_label?` · ${p.validity_label}`:''}</p>
                         <p className="text-sm font-bold text-emerald-600 mt-1">{naira(priceFor(p))}</p>
