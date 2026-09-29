@@ -26,7 +26,7 @@ Deno.serve(async(req)=>{
      const{data:p}=await client.from("datasub_catalog_offerings").select("*").eq("ihlink_plan_id",String(body.product_code).trim().toUpperCase()).eq("customer_enabled",true).single();if(!p)throw new Error("Product unavailable");
      const service=String(p.service_type).toUpperCase();
      if(service==="EXAM"&&body.quantity!==undefined&&Number(body.quantity)!==1)throw new Error("Purchase one exam PIN per transaction");
-     const amountBased=["AIRTIME","ELECTRICITY"].includes(String(p.service_type).toUpperCase()),requested=Number(body.amount),sell=amountBased?requested:Number(p.api_price);if(!Number.isFinite(sell)||sell<=0)throw new Error("Product price unavailable");
+     const amountBased=["AIRTIME","ELECTRICITY"].includes(String(p.service_type).toUpperCase()),requested=Number(body.amount),sell=amountBased?requested:Number(p.api_price);if(!Number.isFinite(sell)||sell<=0)throw new Error("Product price unavailable");if(amountBased&&sell<50)throw new Error("Minimum amount is ₦50");
      const{data:rr}=await client.from("datasub_catalog_routes").select("*,upstream:datasub_upstream_catalog!inner(*,provider:datasub_providers!inner(*))").eq("offering_id",p.id).eq("route_enabled",true);
      const maps=(rr||[]).map((r:any)=>{const u=Array.isArray(r.upstream)?r.upstream[0]:r.upstream;return{...r,provider_id:u.provider_id,external_plan_id:u.external_plan_id,provider_cost:u.provider_cost,raw_metadata:u.raw_metadata,provider:Array.isArray(u.provider)?u.provider[0]:u.provider}});
      const ids=maps.map((m:any)=>m.provider_id),{data:hs}=ids.length?await client.from("datasub_provider_health").select("*").in("provider_id",ids):{data:[]};const hm=new Map((hs||[]).map((h:any)=>[h.provider_id,h]));
