@@ -1,4 +1,5 @@
 import{createClient}from"https://esm.sh/@supabase/supabase-js@2";
+import { quotePurchase, routeCost } from "../_shared/pricing.ts";
 import*as cash from"../_shared/providers/cashsub.ts";
 import*as ds from"../_shared/providers/datastation.ts";
 import*as legit from"../_shared/providers/legitdataway.ts";
@@ -50,12 +51,12 @@ Deno.serve(async req=>{
   else if(reseller?.status==="active"&&reseller?.api_access_approved===true)tier="api_user";
   else if(reseller?.status==="active")tier="reseller";
 
-  const amountBased=["AIRTIME","ELECTRICITY"].includes(String(p.service_type||"").toUpperCase());
-  const requestedAmount=Number(body.amount);
-  const fallback=tier==="api_user"?p.api_price:tier==="reseller"?p.reseller_price:tier==="top_seller"?p.top_seller_price:p.smart_earner_price;
-  const sell=amountBased?requestedAmount:Number(fallback);
-  if(!Number.isFinite(sell)||sell<=0)return J({error:"Product price unavailable"},503);
-  if(amountBased&&sell<50)return J({error:"Minimum amount is ₦50"},400);
+  let quote;
+  try { quote=quotePurchase(service,tier as any,p,body.amount); }
+  catch(error) { return J({error:error instanceof Error?error.message:"Product price unavailable"},400); }
+  const {charge:sell,serviceAmount,fee,dynamic:amountBased}=quote;
+  if((amountBased&&body.expected_charge===undefined)||(body.expected_charge!==undefined&&Number(body.expected_charge)!==sell))
+    return J({error:"The price changed. Refresh the quote before paying."},409);
 
   const tolerance=Math.max(0,Number(p.markup_policy?.routing_price_tolerance_ngn??10));
   const{data:alternates}=await admin.from("datasub_catalog_offerings").select("id,base_provider_cost").eq("spec_key",p.spec_key).eq("customer_enabled",true).lte("base_provider_cost",Number(p.base_provider_cost)+tolerance);
@@ -67,11 +68,11 @@ Deno.serve(async req=>{
   const{data:hs}=ids.length?await admin.from("datasub_provider_health").select("*").in("provider_id",ids):{data:[]};
   const hm=new Map((hs||[]).map((h:any)=>[h.provider_id,h]));
   const candidates=(maps||[])
-    .map((m:any)=>({...m,provider:Array.isArray(m.provider)?m.provider[0]:m.provider,health:hm.get(m.provider_id)}))
+    .map((m:any)=>({...m,provider_cost:routeCost(serviceAmount,amountBased,m),provider:Array.isArray(m.provider)?m.provider[0]:m.provider,health:hm.get(m.provider_id)}))
     .filter((m:any)=>m.active===true&&m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
     .sort((a:any,b:any)=>Number(a.provider_cost)-Number(b.provider_cost)||Number(b.health?.success_rate_15m||0)-Number(a.health?.success_rate_15m||0)||Number(a.health?.average_latency_ms||999999)-Number(b.health?.average_latency_ms||999999));
   const maxRouteCost=Number(p.base_provider_cost)+tolerance;
-  const eligible=candidates.filter((m:any)=>amountBased||(Number(m.provider_cost)<=sell&&Number(m.provider_cost)<=maxRouteCost));
+  const eligible=candidates.filter((m:any)=>Number(m.provider_cost)<=sell&&(amountBased||Number(m.provider_cost)<=maxRouteCost));
   if(!eligible.length)return J({error:"No healthy profitable route"},503);
 
   const transactionService=({DATA:"data",CABLE:"cable_tv",ELECTRICITY:"electricity",EXAM:"education",AIRTIME:"airtime"} as Record<string,string>)[service]||String(p.service_type||"data").toLowerCase();
@@ -80,7 +81,7 @@ Deno.serve(async req=>{
   const{data:tx,error:te}=await admin.from("datasub_transactions").insert({
     user_id:user.id,reference,service_type:transactionService,provider:"routing",
     recipient:String(body.recipient||""),amount:sell,product_id:null,catalog_offering_id:p.id,selling_price:sell,status:"pending",routing_state:"ROUTING",
-    metadata:{client_idempotency_key:clientKey,customer_tier:tier,input:{network,service,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported}}
+    metadata:{client_idempotency_key:clientKey,customer_tier:tier,service_amount:serviceAmount,service_fee:fee,cost_basis:amountBased?"face_value_or_configured_provider_rate":"catalogue",input:{network,service,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported}}
   }).select().single();
   if(te)return J({error:"Transaction creation failed"},500);
 
@@ -95,16 +96,16 @@ Deno.serve(async req=>{
     if(!adapter)continue;
     const attemptKey=`${reference}:${m.provider.code}`;
     await admin.from("datasub_routing_events").insert({transaction_id:tx.id,provider_id:m.provider_id,event_type:i?"FALLBACK_SELECTED":"ROUTE_SELECTED",reason:i?"previous eligible route explicitly failed":"lowest healthy profitable route",details:{provider_cost:m.provider_cost}});
-    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:sell,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported},m,attemptKey);
+    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:serviceAmount,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported},m,attemptKey);
     const safeRaw=JSON.parse(JSON.stringify(result.raw||{},(k,v)=>/token|authorization|password|secret|key/i.test(k)?"[REDACTED]":v));
     await admin.from("datasub_provider_attempts").insert({transaction_id:tx.id,provider_id:m.provider_id,request_key:attemptKey,provider_reference:result.reference,provider_cost:m.provider_cost,response_status:result.state,latency_ms:result.latency,safe_response:safeRaw,is_ambiguous:result.state==="UNKNOWN"});
     if(result.state==="SUCCESS"){
       await admin.from("datasub_transactions").update({provider:m.provider.code,provider_reference:result.reference,provider_cost:m.provider_cost,status:"success",routing_state:"SETTLED"}).eq("id",tx.id);
-      return J({success:true,reference,status:"success"});
+      return J({success:true,reference,status:"success",amount:sell,service_amount:serviceAmount,fee});
     }
     if(result.state==="UNKNOWN"){
       await admin.from("datasub_transactions").update({provider:m.provider.code,provider_reference:result.reference,provider_cost:m.provider_cost,routing_state:"RECONCILING"}).eq("id",tx.id);
-      return J({success:false,reference,status:"pending",message:"Provider result is being reconciled"},202);
+      return J({success:false,reference,status:"pending",amount:sell,service_amount:serviceAmount,fee,message:"Provider result is being reconciled"},202);
     }
   }
 
