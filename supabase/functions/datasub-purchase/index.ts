@@ -38,6 +38,11 @@ Deno.serve(async req=>{
 
   const{data:p}=await admin.from("datasub_catalog_offerings").select("*").eq("id",productId).eq("customer_enabled",true).single();
   if(!p)return J({error:"Product unavailable"},404);
+  // Exam catalogue prices and upstream plan IDs represent one PIN. Do not let
+  // a client request multiple PINs while the wallet reserves a single price.
+  const service=serviceOf(p.service_type);
+  if(service==="EXAM"&&body.quantity!==undefined&&Number(body.quantity)!==1)
+    return J({error:"Purchase one exam PIN per transaction"},400);
 
   const{data:reseller}=await admin.from("datasub_reseller_accounts").select("status,tier_code,api_access_approved").eq("user_id",user.id).maybeSingle();
   let tier="smart_earner";
@@ -64,14 +69,13 @@ Deno.serve(async req=>{
   const eligible=candidates.filter((m:any)=>amountBased||Number(m.provider_cost)<=sell);
   if(!eligible.length)return J({error:"No healthy profitable route"},503);
 
-  const service=serviceOf(p.service_type);
   const transactionService=({DATA:"data",CABLE:"cable_tv",ELECTRICITY:"electricity",EXAM:"education",AIRTIME:"airtime"} as Record<string,string>)[service]||String(p.service_type||"data").toLowerCase();
   const network=String(p.network||"");
   const reference="IHL-"+crypto.randomUUID();
   const{data:tx,error:te}=await admin.from("datasub_transactions").insert({
     user_id:user.id,reference,service_type:transactionService,provider:"routing",
     recipient:String(body.recipient||""),amount:sell,product_id:null,catalog_offering_id:p.id,selling_price:sell,status:"pending",routing_state:"ROUTING",
-    metadata:{client_idempotency_key:clientKey,customer_tier:tier,input:{network,service,meter_type:body.meter_type,quantity:body.quantity,ported:body.ported}}
+    metadata:{client_idempotency_key:clientKey,customer_tier:tier,input:{network,service,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported}}
   }).select().single();
   if(te)return J({error:"Transaction creation failed"},500);
 
@@ -86,7 +90,7 @@ Deno.serve(async req=>{
     if(!adapter)continue;
     const attemptKey=`${reference}:${m.provider.code}`;
     await admin.from("datasub_routing_events").insert({transaction_id:tx.id,provider_id:m.provider_id,event_type:i?"FALLBACK_SELECTED":"ROUTE_SELECTED",reason:i?"previous eligible route explicitly failed":"lowest healthy profitable route",details:{provider_cost:m.provider_cost}});
-    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:body.amount||sell,meter_type:body.meter_type,quantity:body.quantity,ported:body.ported},m,attemptKey);
+    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:sell,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported},m,attemptKey);
     const safeRaw=JSON.parse(JSON.stringify(result.raw||{},(k,v)=>/token|authorization|password|secret|key/i.test(k)?"[REDACTED]":v));
     await admin.from("datasub_provider_attempts").insert({transaction_id:tx.id,provider_id:m.provider_id,request_key:attemptKey,provider_reference:result.reference,provider_cost:m.provider_cost,response_status:result.state,latency_ms:result.latency,safe_response:safeRaw,is_ambiguous:result.state==="UNKNOWN"});
     if(result.state==="SUCCESS"){
