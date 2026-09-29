@@ -38,6 +38,11 @@ Deno.serve(async req=>{
 
   const{data:p}=await admin.from("datasub_catalog_offerings").select("*").eq("id",productId).eq("customer_enabled",true).single();
   if(!p)return J({error:"Product unavailable"},404);
+  // Exam catalogue prices and upstream plan IDs represent one PIN. Do not let
+  // a client request multiple PINs while the wallet reserves a single price.
+  const service=serviceOf(p.service_type);
+  if(service==="EXAM"&&body.quantity!==undefined&&Number(body.quantity)!==1)
+    return J({error:"Purchase one exam PIN per transaction"},400);
 
   const{data:reseller}=await admin.from("datasub_reseller_accounts").select("status,tier_code,api_access_approved").eq("user_id",user.id).maybeSingle();
   let tier="smart_earner";
@@ -52,26 +57,30 @@ Deno.serve(async req=>{
   if(!Number.isFinite(sell)||sell<=0)return J({error:"Product price unavailable"},503);
   if(amountBased&&sell<50)return J({error:"Minimum amount is ₦50"},400);
 
-  const{data:routeRows}=await admin.from("datasub_catalog_routes").select("*,upstream:datasub_upstream_catalog!inner(*,provider:datasub_providers!inner(*))").eq("offering_id",productId).eq("route_enabled",true);
+  const tolerance=Math.max(0,Number(p.markup_policy?.routing_price_tolerance_ngn??10));
+  const{data:alternates}=await admin.from("datasub_catalog_offerings").select("id,base_provider_cost").eq("spec_key",p.spec_key).eq("customer_enabled",true).lte("base_provider_cost",Number(p.base_provider_cost)+tolerance);
+  const offeringIds=(alternates||[]).filter((x:any)=>Number(x.base_provider_cost)>=Number(p.base_provider_cost)-tolerance).map((x:any)=>x.id);
+  if(!offeringIds.includes(productId))offeringIds.push(productId);
+  const{data:routeRows}=await admin.from("datasub_catalog_routes").select("*,upstream:datasub_upstream_catalog!inner(*,provider:datasub_providers!inner(*))").in("offering_id",offeringIds).eq("route_enabled",true);
   const maps=(routeRows||[]).map((r:any)=>{const u=Array.isArray(r.upstream)?r.upstream[0]:r.upstream;return {...r,provider_id:u.provider_id,external_plan_id:u.external_plan_id,provider_cost:u.provider_cost,active:u.active,raw_metadata:u.raw_metadata,provider:Array.isArray(u.provider)?u.provider[0]:u.provider}});
   const ids=(maps||[]).map((m:any)=>m.provider_id);
   const{data:hs}=ids.length?await admin.from("datasub_provider_health").select("*").in("provider_id",ids):{data:[]};
   const hm=new Map((hs||[]).map((h:any)=>[h.provider_id,h]));
   const candidates=(maps||[])
     .map((m:any)=>({...m,provider:Array.isArray(m.provider)?m.provider[0]:m.provider,health:hm.get(m.provider_id)}))
-    .filter((m:any)=>m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
+    .filter((m:any)=>m.active===true&&m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
     .sort((a:any,b:any)=>Number(a.provider_cost)-Number(b.provider_cost)||Number(b.health?.success_rate_15m||0)-Number(a.health?.success_rate_15m||0)||Number(a.health?.average_latency_ms||999999)-Number(b.health?.average_latency_ms||999999));
-  const eligible=candidates.filter((m:any)=>amountBased||Number(m.provider_cost)<=sell);
+  const maxRouteCost=Number(p.base_provider_cost)+tolerance;
+  const eligible=candidates.filter((m:any)=>amountBased||(Number(m.provider_cost)<=sell&&Number(m.provider_cost)<=maxRouteCost));
   if(!eligible.length)return J({error:"No healthy profitable route"},503);
 
-  const service=serviceOf(p.service_type);
   const transactionService=({DATA:"data",CABLE:"cable_tv",ELECTRICITY:"electricity",EXAM:"education",AIRTIME:"airtime"} as Record<string,string>)[service]||String(p.service_type||"data").toLowerCase();
   const network=String(p.network||"");
   const reference="IHL-"+crypto.randomUUID();
   const{data:tx,error:te}=await admin.from("datasub_transactions").insert({
     user_id:user.id,reference,service_type:transactionService,provider:"routing",
     recipient:String(body.recipient||""),amount:sell,product_id:null,catalog_offering_id:p.id,selling_price:sell,status:"pending",routing_state:"ROUTING",
-    metadata:{client_idempotency_key:clientKey,customer_tier:tier,input:{network,service,meter_type:body.meter_type,quantity:body.quantity,ported:body.ported}}
+    metadata:{client_idempotency_key:clientKey,customer_tier:tier,input:{network,service,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported}}
   }).select().single();
   if(te)return J({error:"Transaction creation failed"},500);
 
@@ -86,7 +95,7 @@ Deno.serve(async req=>{
     if(!adapter)continue;
     const attemptKey=`${reference}:${m.provider.code}`;
     await admin.from("datasub_routing_events").insert({transaction_id:tx.id,provider_id:m.provider_id,event_type:i?"FALLBACK_SELECTED":"ROUTE_SELECTED",reason:i?"previous eligible route explicitly failed":"lowest healthy profitable route",details:{provider_cost:m.provider_cost}});
-    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:body.amount||sell,meter_type:body.meter_type,quantity:body.quantity,ported:body.ported},m,attemptKey);
+    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:sell,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported},m,attemptKey);
     const safeRaw=JSON.parse(JSON.stringify(result.raw||{},(k,v)=>/token|authorization|password|secret|key/i.test(k)?"[REDACTED]":v));
     await admin.from("datasub_provider_attempts").insert({transaction_id:tx.id,provider_id:m.provider_id,request_key:attemptKey,provider_reference:result.reference,provider_cost:m.provider_cost,response_status:result.state,latency_ms:result.latency,safe_response:safeRaw,is_ambiguous:result.state==="UNKNOWN"});
     if(result.state==="SUCCESS"){
