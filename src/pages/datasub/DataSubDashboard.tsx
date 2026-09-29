@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout, type SidebarSection } from '@/components/Sidebar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -40,7 +40,7 @@ const sidebarSections: SidebarSection[] = [
 ];
 
 export function DataSubDashboard() {
-  const { showToast } = useToast();
+  const navigate=useNavigate();
   const { wallet, transactions, beneficiaries, loading, error, userName } = useDataSubData();
   const successful = transactions.filter(t => t.status === 'success');
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
@@ -56,7 +56,7 @@ export function DataSubDashboard() {
       userRole="Smart Earner"
       pageTitle="Dashboard"
       pageBreadcrumb={[{ label: 'Overview' }]}
-      rightActions={<Button size="sm" themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Plus className="w-4 h-4" />} onClick={() => showToast('info', 'Wallet funding', 'A secure payment provider will be connected in the next payment phase.')}>Fund Wallet</Button>}
+      rightActions={<Button size="sm" themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Plus className="w-4 h-4" />} onClick={() => navigate('/datasub/wallet')}>Fund Wallet</Button>}
     >
       {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
       {/* Wallet Balance Hero */}
@@ -68,7 +68,7 @@ export function DataSubDashboard() {
             <p className="text-xs text-emerald-100 mt-2">Referral Balance: {naira(wallet.referralBalance)}</p>
           </div>
           <div className="flex gap-3">
-            <Button className="bg-white text-emerald-600 hover:bg-gray-100" leftIcon={<Plus className="w-4 h-4" />} onClick={() => showToast('info', 'Wallet funding', 'A secure payment provider will be connected in the next payment phase.')}>Fund Wallet</Button>
+            <Button className="bg-white text-emerald-600 hover:bg-gray-100" leftIcon={<Plus className="w-4 h-4" />} onClick={() => navigate('/datasub/wallet')}>Fund Wallet</Button>
             <Link to="/datasub/pricing"><Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20" leftIcon={<Gift className="w-4 h-4" />}>Reseller / API</Button></Link>
           </div>
         </div>
