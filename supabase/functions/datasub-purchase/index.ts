@@ -64,7 +64,7 @@ Deno.serve(async req=>{
   const hm=new Map((hs||[]).map((h:any)=>[h.provider_id,h]));
   const candidates=(maps||[])
     .map((m:any)=>({...m,provider:Array.isArray(m.provider)?m.provider[0]:m.provider,health:hm.get(m.provider_id)}))
-    .filter((m:any)=>m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
+    .filter((m:any)=>m.active===true&&m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
     .sort((a:any,b:any)=>Number(a.provider_cost)-Number(b.provider_cost)||Number(b.health?.success_rate_15m||0)-Number(a.health?.success_rate_15m||0)||Number(a.health?.average_latency_ms||999999)-Number(b.health?.average_latency_ms||999999));
   const eligible=candidates.filter((m:any)=>amountBased||Number(m.provider_cost)<=sell);
   if(!eligible.length)return J({error:"No healthy profitable route"},503);
