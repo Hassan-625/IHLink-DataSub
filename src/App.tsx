@@ -475,7 +475,7 @@ export default function App() {
           <Route path="/datasub/profile" element={<ProtectedRoute product="datasub" requireServiceAccess><ProfilePage /></ProtectedRoute>} />
           <Route path="/datasub/notifications" element={<ProtectedRoute product="datasub" requireServiceAccess><NotificationsPage /></ProtectedRoute>} />
           <Route path="/datasub/support-centre" element={<ProtectedRoute product="datasub" requireServiceAccess><AccountSupportPage /></ProtectedRoute>} />
-          <Route path="/datasub/contact" element={<DataSubSupport />} />
+          <Route path="/datasub/contact" element={<Navigate to="/datasub/support" replace />} />
           <Route path="/datasub/security" element={<ProtectedRoute product="datasub" requireServiceAccess><AccountSecurityPage /></ProtectedRoute>} />
           <Route path="/datasub/access-denied" element={<DataSubAccessDenied />} />
 
