@@ -12,7 +12,7 @@ function classify(raw:any,httpOk:boolean):"SUCCESS"|"FAILED"|"UNKNOWN"{
   const value=raw?.status??raw?.Status??raw?.transaction_status??raw?.response_status;
   const s=String(value??"").trim().toLowerCase();
   if(httpOk&&["success","successful","completed","complete","delivered"].includes(s))return "SUCCESS";
-  if(!httpOk||["failed","failure","error","rejected","cancelled","canceled"].includes(s))return "FAILED";
+  if(["failed","failure","error","rejected","cancelled","canceled"].includes(s))return "FAILED";
   return "UNKNOWN";
 }
 function referenceOf(raw:any){const v=raw?.reference??raw?.ident??raw?.id??raw?.transaction_id??raw?.request_id;return v==null||String(v)===""?undefined:String(v)}

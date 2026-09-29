@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout, type SidebarSection } from '@/components/Sidebar';
 import { Card } from '@/components/ui/Card';
@@ -12,12 +12,13 @@ import { ServiceLogo } from '@/components/ServiceLogo';
 import { useDataSubData } from '@/hooks/useDataSubData';
 import { useDataSubTier } from '@/hooks/useDataSubTier';
 import { supabase } from '@/lib/supabase'; import { loadLiveCatalogue } from '@/lib/datasubCatalogue';
+import { quotePurchase } from '../../../supabase/functions/_shared/pricing';
 import { Check, Smartphone, Wifi, Zap, Tv, GraduationCap, Lock, ArrowRight, ArrowLeft, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 interface PurchaseFlowProps {
   service: 'airtime' | 'data' | 'electricity' | 'cable' | 'education';
 }
-type LiveProduct={id:string;provider:string;name:string;retail_price:number;reseller_price:number;api_price:number;description:string|null;plan_category:string|null;validity_label:string|null};
+type LiveProduct={id:string;provider:string;name:string;retail_price:number;reseller_price:number;api_price:number;description:string|null;plan_category:string|null;validity_label:string|null;markup_policy:Record<string,unknown>};
 
 const serviceConfig: Record<string, { title: string; icon: typeof Smartphone; steps: { label: string }[] }> = {
   airtime: { title: 'Buy Airtime', icon: Smartphone, steps: [{ label: 'Service' }, { label: 'Details' }, { label: 'Amount' }, { label: 'Payment' }, { label: 'PIN' }, { label: 'Confirm' }] },
@@ -51,32 +52,43 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const providers=Array.from(new Set(liveProducts.map(p=>p.provider)));
   const { showToast } = useToast();
   const {wallet,userName,refresh}=useDataSubData();
-  const {priceFor}=useDataSubTier();
+  const {tier,priceFor}=useDataSubTier();
+  const requestKey=useRef({signature:'',key:''});
+  const [chargedAmount,setChargedAmount]=useState<number|null>(null);
+  const [catalogueError,setCatalogueError]=useState('');
   useEffect(()=>{setProvider(params.get('provider')||'');setRecipient(params.get('recipient')||'');setAmount(params.get('amount')||'');setSelection(params.get('product_id')||'');},[params,service]);
   useEffect(()=>{if(supabase)void supabase.rpc("datasub_has_transaction_pin").then(r=>setHasTransactionPin(Boolean(r.data)));},[]);
-  useEffect(()=>{async function loadProducts(){if(!supabase)return;const rows=await loadLiveCatalogue(service);setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
+  useEffect(()=>{async function loadProducts(){if(!supabase)return;let rows:LiveProduct[];try{rows=await loadLiveCatalogue(service);setCatalogueError('');}catch{setCatalogueError('The catalogue could not be loaded. Refresh before paying.');return;}setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
+
+  const chosen=(service==='data'||service==='cable'||service==='education')
+    ? liveProducts.find(p=>p.id===selection)
+    : liveProducts.find(p=>p.provider===provider && (service!=='electricity'||p.plan_category===String(params.get('meterType')||'prepaid').toLowerCase())) || liveProducts.find(p=>p.provider===provider);
+  let quote:{charge:number;serviceAmount:number;fee:number}|null=null;
+  if(chosen){try{quote=quotePurchase(service,tier,{...chosen,smart_earner_price:chosen.retail_price},Number(amount));}catch{/* Do not offer payment until a valid quote exists. */}}
+  const total=chargedAmount??quote?.charge??0;
 
   const canContinue=()=>{if(step===0&&!provider){showToast('error','Select a service','Choose a provider or network before continuing.');return false;}if(step===1&&recipient.trim().length<5){showToast('error','Enter valid details','Enter a valid recipient, meter, IUC or phone number.');return false;}if(step===2){if((service==='data'||service==='cable'||service==='education')&&!selection){showToast('error','Select a product',`Choose a ${service==='data'?'plan':service==='cable'?'package':'product'} before continuing.`);return false;}if((service==='airtime'||service==='electricity')&&(!Number.isFinite(Number(amount))||Number(amount)<=0)){showToast('error','Enter an amount','Enter a valid amount before continuing.');return false;}}if(step===4&&!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return false;}return true;};
 
   const handleConfirm = async () => {
     if(!supabase)return;
     const value=Number(amount);
-    const chosen=(service==='data'||service==='cable'||service==='education')
-      ? liveProducts.find(p=>p.id===selection)
-      : liveProducts.find(p=>p.provider===provider && (service!=='electricity'||p.plan_category===String(params.get('meterType')||'prepaid').toLowerCase())) || liveProducts.find(p=>p.provider===provider);
     if(!provider||recipient.trim().length<5||!Number.isFinite(value)||value<=0){showToast('error','Incomplete transaction','Select a provider and enter valid recipient and amount details.');return;}
-    if(!/^\\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return;}
+    if(!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return;}
     if(!chosen){showToast('error','Product unavailable','This product is not active in the live IHLink catalogue.');return;}
-    const idempotencyKey=crypto.randomUUID();
+    if(!quote){showToast('error','Price unavailable','Refresh the catalogue and choose a valid amount.');return;}
+    const signature=JSON.stringify({product:chosen.id,recipient:recipient.trim(),amount:value,meterType:params.get('meterType')});
+    if(requestKey.current.signature!==signature)requestKey.current={signature,key:crypto.randomUUID()};
+    const idempotencyKey=requestKey.current.key;
     setProcessing(true);
     const {data,error}=await supabase.functions.invoke('datasub-purchase',{
       headers:{'Idempotency-Key':idempotencyKey},
-      body:{product_id:chosen.id,recipient:recipient.trim(),amount:value,pin,meter_type:params.get('meterType')||undefined,quantity:service==='education'?1:undefined}
+      body:{product_id:chosen.id,recipient:recipient.trim(),amount:value,expected_charge:quote.charge,pin,meter_type:params.get('meterType')||undefined,quantity:service==='education'?1:undefined}
     });
     setProcessing(false);
     if(error){setResult('failed');showToast('error','Transaction not completed',error.message);return;}
     const transactionReference=String(data?.reference||data?.transaction?.reference||'');
     setReference(transactionReference);
+    setChargedAmount(Number(data?.amount??data?.transaction?.amount??quote.charge));
     const status=String(data?.status||data?.transaction?.status||'pending').toLowerCase();
     setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
     await refresh();
@@ -93,10 +105,10 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <CheckCircle2 className="w-10 h-10 relative" />
               </div>
               <h2 className="text-2xl font-extrabold text-ink mb-2">Transaction Successful!</h2>
-              <p className="text-sm text-muted mb-6">Your {config.title.toLowerCase()} purchase of {naira(Number(amount)||0)} was completed successfully.</p>
+              <p className="text-sm text-muted mb-6">Your {config.title.toLowerCase()} purchase of {naira(total)} was completed successfully.</p>
               <div className="p-4 rounded-xl bg-surface mb-6 text-left space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted">Reference</span><span className="font-mono font-semibold">{reference}</span></div>
-                <div className="flex justify-between"><span className="text-muted">Amount</span><span className="font-semibold">{naira(Number(amount)||0)}</span></div>
+                <div className="flex justify-between"><span className="text-muted">Amount</span><span className="font-semibold">{naira(total)}</span></div>
                 <div className="flex justify-between"><span className="text-muted">Date</span><span className="font-semibold">{new Date().toLocaleDateString()}</span></div>
                 <div className="flex justify-between"><span className="text-muted">Status</span><Badge variant="status" status="success" /></div>
               </div>
@@ -136,7 +148,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   }
 
   return (
-    <DashboardLayout product="datasub" sections={sidebarSections} userName={userName} userRole="Customer" pageTitle={config.title} pageBreadcrumb={[{ label: 'Purchase' }]}>
+    <DashboardLayout product="datasub" sections={sidebarSections} userName={userName} userRole="Customer" pageTitle={config.title} pageBreadcrumb={[{ label: 'Purchase' }]}>{catalogueError&&<p role="alert">{catalogueError}</p>}
       <div className="max-w-2xl mx-auto">
         <Card padding="lg">
           <div className="mb-8">
@@ -226,11 +238,11 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                   <div className="flex justify-between"><span className="text-muted">Service</span><span className="font-semibold">{config.title}</span></div>
                   <div className="flex justify-between"><span className="text-muted">Provider</span><span className="font-semibold">{provider||'Not selected'}</span></div>
                   <div className="flex justify-between"><span className="text-muted">Recipient</span><span className="font-semibold">{recipient||'Not entered'}</span></div>
-                  <div className="flex justify-between"><span className="text-muted">Amount</span><span className="font-semibold">{naira(Number(amount)||0)}</span></div>
-                  <div className="flex justify-between"><span className="text-muted">Payment</span><span className="font-semibold">Wallet</span></div>
-                  <div className="flex justify-between border-t border-border pt-2"><span className="font-bold">Total</span><span className="font-bold text-emerald-600">{naira(Number(amount)||0)}</span></div>
+                  <div className="flex justify-between"><span className="text-muted">Service value</span><span className="font-semibold">{naira(quote?.serviceAmount??(Number(amount)||0))}</span></div>
+                  <div className="flex justify-between"><span className="text-muted">Service fee</span><span className="font-semibold">{naira(quote?.fee??0)}</span></div><div className="flex justify-between"><span className="text-muted">Payment</span><span className="font-semibold">Wallet</span></div>
+                  <div className="flex justify-between border-t border-border pt-2"><span className="font-bold">Total</span><span className="font-bold text-emerald-600">{naira(total)}</span></div>
                 </div>
-                <AlertBox amount={Number(amount)||0} />
+                <AlertBox amount={total} />
               </div>
             )}
           </div>
@@ -241,7 +253,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step < 5 ? (
               <Button themeClass="bg-emerald-500 hover:bg-emerald-600" rightIcon={<ArrowRight className="w-4 h-4" />} onClick={() => {if(canContinue())setStep(step + 1);}}>Continue</Button>
             ) : (
-              <Button disabled={processing} themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Check className="w-4 h-4" />} onClick={()=>void handleConfirm()}>{processing?'Processing…':'Confirm & Pay'}</Button>
+              <Button disabled={processing||!quote} themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Check className="w-4 h-4" />} onClick={()=>void handleConfirm()}>{processing?'Processing…':'Confirm & Pay'}</Button>
             )}
           </div>
         </Card>
