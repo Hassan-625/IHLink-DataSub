@@ -57,7 +57,11 @@ Deno.serve(async req=>{
   if(!Number.isFinite(sell)||sell<=0)return J({error:"Product price unavailable"},503);
   if(amountBased&&sell<50)return J({error:"Minimum amount is ₦50"},400);
 
-  const{data:routeRows}=await admin.from("datasub_catalog_routes").select("*,upstream:datasub_upstream_catalog!inner(*,provider:datasub_providers!inner(*))").eq("offering_id",productId).eq("route_enabled",true);
+  const tolerance=Math.max(0,Number(p.markup_policy?.routing_price_tolerance_ngn??10));
+  const{data:alternates}=await admin.from("datasub_catalog_offerings").select("id,base_provider_cost").eq("spec_key",p.spec_key).eq("customer_enabled",true).lte("base_provider_cost",Number(p.base_provider_cost)+tolerance);
+  const offeringIds=(alternates||[]).filter((x:any)=>Number(x.base_provider_cost)>=Number(p.base_provider_cost)-tolerance).map((x:any)=>x.id);
+  if(!offeringIds.includes(productId))offeringIds.push(productId);
+  const{data:routeRows}=await admin.from("datasub_catalog_routes").select("*,upstream:datasub_upstream_catalog!inner(*,provider:datasub_providers!inner(*))").in("offering_id",offeringIds).eq("route_enabled",true);
   const maps=(routeRows||[]).map((r:any)=>{const u=Array.isArray(r.upstream)?r.upstream[0]:r.upstream;return {...r,provider_id:u.provider_id,external_plan_id:u.external_plan_id,provider_cost:u.provider_cost,active:u.active,raw_metadata:u.raw_metadata,provider:Array.isArray(u.provider)?u.provider[0]:u.provider}});
   const ids=(maps||[]).map((m:any)=>m.provider_id);
   const{data:hs}=ids.length?await admin.from("datasub_provider_health").select("*").in("provider_id",ids):{data:[]};
@@ -66,7 +70,8 @@ Deno.serve(async req=>{
     .map((m:any)=>({...m,provider:Array.isArray(m.provider)?m.provider[0]:m.provider,health:hm.get(m.provider_id)}))
     .filter((m:any)=>m.active===true&&m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
     .sort((a:any,b:any)=>Number(a.provider_cost)-Number(b.provider_cost)||Number(b.health?.success_rate_15m||0)-Number(a.health?.success_rate_15m||0)||Number(a.health?.average_latency_ms||999999)-Number(b.health?.average_latency_ms||999999));
-  const eligible=candidates.filter((m:any)=>amountBased||Number(m.provider_cost)<=sell);
+  const maxRouteCost=Number(p.base_provider_cost)+tolerance;
+  const eligible=candidates.filter((m:any)=>amountBased||(Number(m.provider_cost)<=sell&&Number(m.provider_cost)<=maxRouteCost));
   if(!eligible.length)return J({error:"No healthy profitable route"},503);
 
   const transactionService=({DATA:"data",CABLE:"cable_tv",ELECTRICITY:"electricity",EXAM:"education",AIRTIME:"airtime"} as Record<string,string>)[service]||String(p.service_type||"data").toLowerCase();
