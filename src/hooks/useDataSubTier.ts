@@ -7,8 +7,10 @@ export type TierPricedProduct={retail_price:number;reseller_price?:number|null;a
 
 export function useDataSubTier(){
   const {user}=useAuth();
-  const [tier,setTier]=useState<DataSubTier>("smart_earner");
-  useEffect(()=>{let alive=true;(async()=>{
+  const [state,setState]=useState<{userId:string;tier:DataSubTier}>({userId:"",tier:"smart_earner"});
+  const tier=state.userId===user?.id?state.tier:"smart_earner";
+  const setTier=(value:DataSubTier)=>setState({userId:user?.id||"",tier:value});
+  useEffect(()=>{let alive=true;setTier("smart_earner");(async()=>{
     if(!supabase||!user){if(alive)setTier("smart_earner");return;}
     const {data}=await supabase.from("datasub_reseller_accounts").select("status,tier_code,api_access_approved").eq("user_id",user.id).maybeSingle();
     if(!alive)return;

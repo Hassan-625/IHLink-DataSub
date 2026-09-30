@@ -1,3 +1,4 @@
+import {useDataSubPermissions,type DataSubPermission} from '@/hooks/useDataSubPermissions';
 import { useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, LogOut, Settings, Bell, Search, LayoutDashboard, Wallet, ReceiptText, Grid3X3, Wrench, Smartphone, Wifi, Zap, Tv, GraduationCap, ArrowRightLeft, Printer } from 'lucide-react';
@@ -5,7 +6,8 @@ import { Logo } from './Logo';
 import { Avatar } from '@/components/ui/Stepper';
 import { productThemes, type ProductKey } from '@/lib/designTokens';
 import { useAuth } from '@/context/AuthContext';
-import { useDataSubPermissions } from '@/hooks/useDataSubPermissions';
+
+const dataSubItems: {label:string;path:string;permission:DataSubPermission}[]=[{"label": "Dashboard", "path": "dashboard", "permission": "dashboard"}, {"label": "Wallet", "path": "wallet", "permission": "wallet"}, {"label": "Transactions", "path": "transactions", "permission": "transactions"}, {"label": "All services", "path": "services", "permission": "services"}, {"label": "Customer tools", "path": "customer-tools", "permission": "customer_tools"}, {"label": "Buy airtime", "path": "buy-airtime", "permission": "purchase"}, {"label": "Buy data", "path": "buy-data", "permission": "purchase"}, {"label": "Electricity", "path": "pay-electricity", "permission": "purchase"}, {"label": "Cable TV", "path": "pay-cable", "permission": "purchase"}, {"label": "Education PINs", "path": "buy-education", "permission": "purchase"}, {"label": "Airtime to cash", "path": "airtime-to-cash", "permission": "purchase"}, {"label": "Print cards", "path": "print-cards", "permission": "purchase"}, {"label": "Reseller workspace", "path": "reseller-dashboard", "permission": "reseller"}, {"label": "Developer API", "path": "api-dashboard", "permission": "api"}, {"label": "Upgrade plan", "path": "upgrade", "permission": "upgrade"}, {"label": "Notifications", "path": "notifications", "permission": "notifications"}, {"label": "Support", "path": "support-centre", "permission": "support"}, {"label": "Profile", "path": "profile", "permission": "profile"}, {"label": "Security", "path": "security", "permission": "profile"}];
 
 export interface SidebarItem {
   label: string;
@@ -32,7 +34,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({
   product,
-  sections,
+  sections: providedSections,
   children,
   userName,
   userRole,
@@ -40,8 +42,11 @@ export function DashboardLayout({
   pageBreadcrumb,
   rightActions,
 }: DashboardLayoutProps) {
-  const theme = productThemes[product];
   const location = useLocation();
+  const dataSubPermissions=useDataSubPermissions();
+  const sections:SidebarSection[]=product==='datasub'&&!location.pathname.startsWith('/admin')?[{title:'DataSub workspace',items:dataSubItems.filter(item=>dataSubPermissions.can(item.permission)).map(item=>({label:item.label,href:'/datasub/'+item.path,icon:<Settings className="w-4 h-4"/>}))}]:providedSections;
+  const theme = productThemes[product];
+
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -49,32 +54,7 @@ export function DashboardLayout({
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
   const roleKey = String(profile?.role || '');
-  const ds=useDataSubPermissions();
-  const dataSubSections: SidebarSection[] = [
-    { title: 'Main', items: [
-      { label:'Dashboard',href:'/datasub/dashboard',icon:<LayoutDashboard className="w-4 h-4"/> },
-      { label:'Wallet',href:'/datasub/wallet',icon:<Wallet className="w-4 h-4"/> },
-      { label:'Transactions',href:'/datasub/transactions',icon:<ReceiptText className="w-4 h-4"/> },
-      { label:'All Services',href:'/datasub/services',icon:<Grid3X3 className="w-4 h-4"/> },
-      { label:'Customer Tools',href:'/datasub/customer-tools',icon:<Wrench className="w-4 h-4"/> },
-    ]},
-    { title:'Services', items:[
-      {label:'Buy Airtime',href:'/datasub/buy/airtime',icon:<Smartphone className="w-4 h-4"/>},
-      {label:'Buy Data',href:'/datasub/buy/data',icon:<Wifi className="w-4 h-4"/>},
-      {label:'Pay Electricity',href:'/datasub/buy/electricity',icon:<Zap className="w-4 h-4"/>},
-      {label:'Pay Cable',href:'/datasub/buy/cable',icon:<Tv className="w-4 h-4"/>},
-      {label:'Education PIN',href:'/datasub/buy/education',icon:<GraduationCap className="w-4 h-4"/>},
-      {label:'Airtime to Cash',href:'/datasub/airtime-to-cash',icon:<ArrowRightLeft className="w-4 h-4"/>},
-      {label:'Print Cards',href:'/datasub/print-cards',icon:<Printer className="w-4 h-4"/>},
-    ]},
-    { title:'Account', items:[
-      {label:'Notifications',href:'/datasub/notifications',icon:<Bell className="w-4 h-4"/>},
-      {label:'Profile & Settings',href:'/datasub/profile',icon:<Settings className="w-4 h-4"/>},
-      {label:'Support',href:'/datasub/support',icon:<Wrench className="w-4 h-4"/>},
-    ]}
-  ];
-  const sourceSections=product==='datasub'?dataSubSections:sections;
-  const visibleSections=product==='datasub'?sourceSections.map(s=>({...s,items:s.items.filter(i=>{if(i.href.includes('api-dashboard'))return ds.can('api');if(i.href.includes('reseller-dashboard'))return ds.can('reseller');return true})})).filter(s=>s.items.length):sourceSections;
+  const visibleSections=sections;
   const canSeeAdministration = ['super_admin', 'platform_admin', 'content_admin'].includes(roleKey);
   const searchableItems = visibleSections.flatMap((section) => section.items).filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
   const handleSignOut = async () => { await signOut(); navigate('/signin'); };
