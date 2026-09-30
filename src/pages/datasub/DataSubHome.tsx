@@ -88,7 +88,7 @@ export function DataSubHome() {
         </div>
       </section>
 
-      <ExperiencePhoto src="/images/ihlink-service-scene.webp" alt="IHLink DataSub branded digital services concept" illustration eyebrow="Made for everyday transactions" title="Airtime, data and bills from the device already in your hand" text="From a first airtime purchase to running a reseller business, clear screens and helpful support keep every transaction comfortable." accentClass="text-emerald-700" />
+      <ExperiencePhoto src="/images/service-scene-clean.webp" alt="IHLink DataSub branded digital services concept" illustration eyebrow="Made for everyday transactions" title="Airtime, data and bills from the device already in your hand" text="From a first airtime purchase to running a reseller business, clear screens and helpful support keep every transaction comfortable." accentClass="text-emerald-700" />
 
       {/* Supported Networks */}
       <section className="py-10 bg-white border-b border-border">
