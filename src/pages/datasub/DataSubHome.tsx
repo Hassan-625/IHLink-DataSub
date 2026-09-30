@@ -117,6 +117,24 @@ export function DataSubHome() {
         </div>
       </section>
 
+      <section className="py-16 bg-white">
+        <div className="px-6 lg:px-10 max-w-[1280px] mx-auto">
+          <div className="max-w-3xl"><Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">All Services</Badge><h2 className="text-3xl font-extrabold text-ink">Choose the exact service you need</h2><p className="mt-2 text-sm leading-6 text-muted">Each service has a clear purchase path. Data categories remain distinct so SME, Gifting and Corporate Gifting are not presented as the same product.</p></div>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {title:'SME Data',text:'Business-friendly data bundles where supported by the selected network.',icon:Wifi,href:'/datasub/buy-data',logos:['MTN','Glo','T2']},
+              {title:'Gifting Data',text:'Direct gifting bundles from supported network catalogues.',icon:Smartphone,href:'/datasub/buy-data',logos:['MTN','Glo','Airtel']},
+              {title:'Corporate Gifting',text:'Corporate gifting offers for supported MTN, Glo and Airtel routes.',icon:Users,href:'/datasub/buy-data',logos:['MTN','Glo','Airtel']},
+              {title:'Airtime Top-up',text:'Recharge MTN, Airtel, Glo and T2 lines from one purchase flow.',icon:Smartphone,href:'/datasub/buy-airtime',logos:['MTN','Airtel','Glo','T2']},
+              {title:'Electricity',text:'Prepaid and postpaid electricity payments with supported Nigerian DISCOs.',icon:Zap,href:'/datasub/pay-electricity',logos:[]},
+              {title:'Cable TV',text:'Subscription renewal for DStv, GOtv and StarTimes.',icon:Tv,href:'/datasub/pay-cable',logos:['DStv','GOtv','StarTimes']},
+              {title:'Education Services',text:'Provider-connected WAEC, NECO, JAMB and NABTEB products.',icon:GraduationCap,href:'/datasub/buy-education',logos:['WAEC','NECO','JAMB','NABTEB']},
+              {title:'Reseller & API',text:'Tier pricing, commissions, API credentials and usage tools for approved accounts.',icon:Code,href:'/datasub/reseller',logos:[]},
+            ].map(({title,text,icon:Icon,href,logos})=><Card key={title} hover padding="lg" className="flex min-h-64 flex-col"><div className="flex items-center justify-between"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><Icon className="h-6 w-6"/></div><ArrowRightLeft className="h-5 w-5 text-muted"/></div><h3 className="mt-5 text-lg font-extrabold text-ink">{title}</h3><p className="mt-2 text-sm leading-6 text-muted">{text}</p>{logos.length>0&&<div className="mt-4 flex flex-wrap gap-2">{logos.map(name=><ServiceLogo key={name} name={name} size="sm"/>)}</div>}<Link className="mt-auto pt-5 text-sm font-bold text-emerald-700" to={href}>Open service →</Link></Card>)}
+          </div>
+        </div>
+      </section>
+
       {/* Data Plan Cards */}
       <section className="py-16 bg-surface">
         <div className="px-6 lg:px-10 max-w-[1280px] mx-auto">
