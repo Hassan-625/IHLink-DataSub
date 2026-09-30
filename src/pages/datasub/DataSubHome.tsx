@@ -1,10 +1,9 @@
-﻿import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { PageShell } from '@/components/PageShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Accordion } from '@/components/ui/Stepper';
-import { useToast } from '@/components/ui/Toast';
 import { naira } from '@/lib/designTokens';
 import { networks, electricityProviders } from '@/lib/datasubServices';
 import { supabase } from '@/lib/supabase';
@@ -27,19 +26,31 @@ const faqItems = [
 ];
 
 export function DataSubHome() {
-  const { showToast } = useToast();
   const { user } = useAuth();
-  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletBalance, setWalletBalance] = useState<number|null>(null);
+  const [walletScope,setWalletScope]=useState<string|null>(null);
+  const [walletLoading,setWalletLoading]=useState(false);
+  const [walletError,setWalletError]=useState('');
   const [dataPlans, setDataPlans] = useState<Array<{code:string;provider:string;name:string;validity_label:string|null;retail_price:number}>>([]);
-    useEffect(() => {
-    if (!supabase) return;
-    void (async () => {
-      const products = await supabase.from('datasub_products').select('code,provider,name,validity_label,retail_price,service_type').eq('is_active', true).order('sort_order').limit(200);
-      const rows = products.data || [];
-      setDataPlans(rows.filter((x) => x.service_type === 'data').slice(0, 4).map((x) => ({...x, retail_price:Number(x.retail_price)})));
-      if (user) { const w = await supabase.from('datasub_wallets').select('balance').eq('user_id', user.id).maybeSingle(); setWalletBalance(Number(w.data?.balance || 0)); }
+  useEffect(() => {
+    let active=true;
+    setWalletBalance(null);setWalletScope(null);setWalletError('');setWalletLoading(Boolean(user));
+    if(!supabase){setWalletScope(user?.id||null);setWalletLoading(false);setWalletError('Wallet is unavailable.');return;}
+    const db=supabase;
+    void (async()=>{
+      const products=await db.from('datasub_products').select('code,provider,name,validity_label,retail_price,service_type').eq('is_active',true).order('sort_order').limit(200);
+      if(!active)return;
+      setDataPlans((products.data||[]).filter(x=>x.service_type==='data').slice(0,4).map(x=>({...x,retail_price:Number(x.retail_price)})));
     })();
-  }, [user]);
+    if(user)void (async()=>{
+      const w=await db.from('datasub_wallets').select('balance').eq('user_id',user.id).maybeSingle();
+      if(!active)return;
+      setWalletScope(user.id);setWalletLoading(false);
+      if(w.error||!w.data||!Number.isFinite(Number(w.data.balance))){setWalletError('Wallet balance could not be loaded. Open your wallet to retry.');return;}
+      setWalletBalance(Number(w.data.balance));
+    })();
+    return()=>{active=false;};
+  },[user?.id]);
   return (
     <PageShell product="datasub">
       {/* Hero */}
@@ -63,10 +74,11 @@ export function DataSubHome() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-xs text-muted">Wallet Balance</p>
-                    <p className="text-2xl font-extrabold text-ink">{naira(walletBalance)}</p>
+                    <p className="text-2xl font-extrabold text-ink">{!user?'Sign in to view your wallet':walletLoading||walletScope!==user.id?'Loading wallet…':walletBalance===null?'Balance unavailable':naira(walletBalance)}</p>
                   </div>
-                  <Button size="sm" themeClass="bg-emerald-500 hover:bg-emerald-600" onClick={() => showToast('info', 'Wallet funding', 'Open your wallet to fund your account through an available payment method.')}>Fund Wallet</Button>
+                  <Link to={user?'/datasub/wallet':'/signin?next=%2Fdatasub%2Fwallet'}><Button size="sm" themeClass="bg-emerald-500 hover:bg-emerald-600">{user?'Open wallet':'Sign in'}</Button></Link>
                 </div>
+                {user&&walletScope===user.id&&walletError&&<p role="alert" className="mb-4 text-sm text-red-700">{walletError}</p>}
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { icon: Smartphone, label: 'Airtime', href: '/datasub/buy-airtime' },
