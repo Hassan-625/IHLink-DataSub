@@ -8,7 +8,7 @@ import { naira } from '@/lib/designTokens';
 import { networks, electricityProviders } from '@/lib/datasubServices';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ServiceLogo } from '@/components/ServiceLogo';
 import { ExperiencePhoto } from '@/components/ExperiencePhoto';
 import { IH_LINK_LOGO } from '@/assets/ihlinkLogo';
@@ -31,16 +31,16 @@ export function DataSubHome() {
   const [walletScope,setWalletScope]=useState<string|null>(null);
   const [walletLoading,setWalletLoading]=useState(false);
   const [walletError,setWalletError]=useState('');
-  const [dataPlans, setDataPlans] = useState<Array<{code:string;provider:string;name:string;validity_label:string|null;retail_price:number}>>([]);
+  const [dataPlans, setDataPlans] = useState<Array<{code:string;provider:string;name:string;validity_label:string|null;retail_price:number;plan_category?:string|null}>>([]);
   useEffect(() => {
     let active=true;
     setWalletBalance(null);setWalletScope(null);setWalletError('');setWalletLoading(Boolean(user));
     if(!supabase){setWalletScope(user?.id||null);setWalletLoading(false);setWalletError('Wallet is unavailable.');return;}
     const db=supabase;
     void (async()=>{
-      const products=await db.from('datasub_products').select('code,provider,name,validity_label,retail_price,service_type').eq('is_active',true).order('sort_order').limit(200);
+      const products=await db.from('datasub_products').select('code,provider,name,validity_label,retail_price,service_type,plan_category').eq('is_active',true).order('provider').order('sort_order').limit(1000);
       if(!active)return;
-      setDataPlans((products.data||[]).filter(x=>x.service_type==='data').slice(0,4).map(x=>({...x,retail_price:Number(x.retail_price)})));
+      setDataPlans((products.data||[]).filter(x=>x.service_type==='data').map(x=>({...x,retail_price:Number(x.retail_price)})));
     })();
     if(user)void (async()=>{
       const w=await db.from('datasub_wallets').select('balance').eq('user_id',user.id).maybeSingle();
@@ -51,6 +51,8 @@ export function DataSubHome() {
     })();
     return()=>{active=false;};
   },[user?.id]);
+  const networkOrder=['MTN','Airtel','Glo','T2'];
+  const groupedDataPlans=useMemo(()=>networkOrder.map(network=>({network,plans:dataPlans.filter(plan=>plan.provider.toLowerCase()===network.toLowerCase()||(network==='T2'&&['9mobile','t2'].includes(plan.provider.toLowerCase())))})).filter(group=>group.plans.length>0),[dataPlans]);
   return (
     <PageShell product="datasub">
       {/* Hero */}
@@ -118,21 +120,7 @@ export function DataSubHome() {
       </section>
 
       <section className="py-16 bg-white">
-        <div className="px-6 lg:px-10 max-w-[1280px] mx-auto">
-          <div className="max-w-3xl"><Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">All Services</Badge><h2 className="text-3xl font-extrabold text-ink">Choose the exact service you need</h2><p className="mt-2 text-sm leading-6 text-muted">Each service has a clear purchase path. Data categories remain distinct so SME, Gifting and Corporate Gifting are not presented as the same product.</p></div>
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {[
-              {title:'SME Data',text:'Business-friendly data bundles where supported by the selected network.',icon:Wifi,href:'/datasub/buy-data',logos:['MTN','Glo','T2']},
-              {title:'Gifting Data',text:'Direct gifting bundles from supported network catalogues.',icon:Smartphone,href:'/datasub/buy-data',logos:['MTN','Glo','Airtel']},
-              {title:'Corporate Gifting',text:'Corporate gifting offers for supported MTN, Glo and Airtel routes.',icon:Users,href:'/datasub/buy-data',logos:['MTN','Glo','Airtel']},
-              {title:'Airtime Top-up',text:'Recharge MTN, Airtel, Glo and T2 lines from one purchase flow.',icon:Smartphone,href:'/datasub/buy-airtime',logos:['MTN','Airtel','Glo','T2']},
-              {title:'Electricity',text:'Prepaid and postpaid electricity payments with supported Nigerian DISCOs.',icon:Zap,href:'/datasub/pay-electricity',logos:[]},
-              {title:'Cable TV',text:'Subscription renewal for DStv, GOtv and StarTimes.',icon:Tv,href:'/datasub/pay-cable',logos:['DStv','GOtv','StarTimes']},
-              {title:'Education Services',text:'Provider-connected WAEC, NECO, JAMB and NABTEB products.',icon:GraduationCap,href:'/datasub/buy-education',logos:['WAEC','NECO','JAMB','NABTEB']},
-              {title:'Reseller & API',text:'Tier pricing, commissions, API credentials and usage tools for approved accounts.',icon:Code,href:'/datasub/reseller',logos:[]},
-            ].map(({title,text,icon:Icon,href,logos})=><Card key={title} hover padding="lg" className="flex min-h-64 flex-col"><div className="flex items-center justify-between"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><Icon className="h-6 w-6"/></div><ArrowRightLeft className="h-5 w-5 text-muted"/></div><h3 className="mt-5 text-lg font-extrabold text-ink">{title}</h3><p className="mt-2 text-sm leading-6 text-muted">{text}</p>{logos.length>0&&<div className="mt-4 flex flex-wrap gap-2">{logos.map(name=><ServiceLogo key={name} name={name} size="sm"/>)}</div>}<Link className="mt-auto pt-5 text-sm font-bold text-emerald-700" to={href}>Open service →</Link></Card>)}
-          </div>
-        </div>
+        <div className="px-6 lg:px-10 max-w-[1280px] mx-auto"><div className="max-w-3xl"><Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">All Data Services</Badge><h2 className="text-3xl font-extrabold text-ink">Every network and data type in one catalogue</h2><p className="mt-2 text-sm leading-6 text-muted">Compare the live MTN, Airtel, Glo and T2 catalogue in one place. SME, Gifting and Corporate Gifting remain clearly identified from the configured product data.</p></div><div className="mt-8 overflow-x-auto rounded-2xl border border-border shadow-sm"><table className="w-full min-w-[860px] text-left"><thead className="sticky top-0 z-20 bg-emerald-50 text-xs uppercase tracking-wide text-emerald-900 shadow-sm"><tr>{['Network','Data type','Plan','Validity','Smart Earner price','Action'].map(h=><th key={h} className="p-4">{h}</th>)}</tr></thead><tbody>{groupedDataPlans.flatMap(group=>group.plans.map((plan,index)=><tr key={plan.code} className="border-t align-middle hover:bg-emerald-50/40"><td className="p-4">{index===0?<div className="flex items-center gap-3"><ServiceLogo name={group.network} size="sm"/><span className="font-extrabold">{group.network}</span></div>:<span className="sr-only">{group.network}</span>}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold">{plan.plan_category||'Data'}</span></td><td className="p-4 font-semibold">{plan.name}</td><td className="p-4 text-sm text-muted">{plan.validity_label||'See plan details'}</td><td className="p-4 font-extrabold text-emerald-700">{naira(plan.retail_price)}</td><td className="p-4"><Link to="/datasub/buy-data" className="font-bold text-emerald-700">Buy data →</Link></td></tr>)))}{!dataPlans.length&&<tr><td colSpan={6} className="p-8 text-center text-sm text-muted">No active data plans are currently available.</td></tr>}</tbody></table></div><p className="mt-3 text-xs text-muted">Catalogue rows are loaded from the active DataSub product configuration; inactive products are not advertised.</p></div>
       </section>
 
       {/* Data Plan Cards */}
