@@ -15,7 +15,7 @@ interface NavItem {
 
 const nav: NavItem[] = [
   { label: 'Home', href: '/datasub' },
-  { label: 'Dashboard', href: '/account' },
+  { label: 'Dashboard', href: '/datasub/dashboard' },
   { label: 'Airtime', href: '/datasub/airtime' },
   { label: 'Data Plans', href: '/datasub/data-plans' },
   { label: 'Electricity', href: '/datasub/electricity' },
@@ -62,12 +62,12 @@ export function Header({ showAnnouncement = true, announcementText }: HeaderProp
             ) : <Link key={item.href} to={item.href} className={`px-3 py-2 text-sm font-semibold rounded-lg ${isActive(item.href) ? theme.textClass : 'text-ink hover:bg-gray-50'}`}>{item.label}</Link>)}
           </nav>
           <div className="flex items-center gap-2">
-            {user ? <><Link to="/account" className="hidden xl:block"><Button variant="ghost">My Dashboard</Button></Link>{profile?.role === 'super_admin' && <Link to="/admin" className="hidden xl:block"><Button themeClass={theme.btnClass}>DataSub Admin</Button></Link>}</> : <><Link to="/signin" className="hidden xl:block"><Button variant="ghost">Sign In</Button></Link><Link to="/register" className="hidden xl:block"><Button themeClass={theme.btnClass}>Get Started</Button></Link></>}
+            {user ? <>{profile?.role === 'super_admin' && <Link to="/admin" className="hidden xl:block"><Button themeClass={theme.btnClass}>DataSub Admin</Button></Link>}</> : <><Link to="/signin" className="hidden xl:block"><Button variant="ghost">Sign In</Button></Link><Link to="/register" className="hidden xl:block"><Button themeClass={theme.btnClass}>Get Started</Button></Link></>}
             <button className="xl:hidden p-2 rounded-lg hover:bg-gray-100" onClick={() => setMobileOpen(v => !v)}>{mobileOpen ? <X className="w-5 h-5"/> : <Menu className="w-5 h-5"/>}</button>
           </div>
         </div>
       </div>
-      {mobileOpen && <div className="xl:hidden border-t border-border bg-white p-4 space-y-1">{nav.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{user ? <Link to="/account" className="flex-1"><Button fullWidth>My Dashboard</Button></Link> : <><Link to="/signin" className="flex-1"><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1"><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
+      {mobileOpen && <div className="xl:hidden border-t border-border bg-white p-4 space-y-1">{nav.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{user ?  : <><Link to="/signin" className="flex-1"><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1"><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
     </header>
   </>;
 }
