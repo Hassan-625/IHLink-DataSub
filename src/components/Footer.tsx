@@ -1,7 +1,8 @@
+import { WhatsAppIcon } from './WhatsAppIcon';
 import { Link } from 'react-router-dom';
 import { Logo } from './Logo';
 import { productThemes, type ProductKey } from '@/lib/designTokens';
-import { Mail, Phone, MapPin, ArrowRight, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
 import { IHLinkContact } from '@/lib/contact';
 
 interface FooterProps { product?: ProductKey; }
@@ -30,7 +31,7 @@ export function Footer({}: FooterProps) {
           <div className="space-y-2">
             <div className="flex items-center gap-2.5 text-sm opacity-70"><MapPin className="w-4 h-4"/>{IHLinkContact.address}</div>
             <a href={IHLinkContact.phoneHref} className="flex items-center gap-2.5 text-sm opacity-70"><Phone className="w-4 h-4"/>{IHLinkContact.phoneDisplay}</a>
-            <a href={IHLinkContact.whatsappHref} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 text-sm opacity-70"><MessageCircle className="w-4 h-4"/>WhatsApp IHLink</a>
+            <a href={IHLinkContact.whatsappHref} target="_blank" rel="noreferrer" className="flex items-center gap-2.5 text-sm opacity-70"><WhatsAppIcon className="w-4 h-4"/>WhatsApp IHLink</a>
             <a href={IHLinkContact.emailHref} className="flex items-center gap-2.5 text-sm opacity-70"><Mail className="w-4 h-4"/>{IHLinkContact.email}</a>
           </div>
         </div>
