@@ -13,6 +13,8 @@ Deno.serve(async(req)=>{
  const apiKey=req.headers.get("x-ihlink-api-key")?.trim();if(!apiKey)return json({error:"missing_api_key",message:"Send your API key in x-ihlink-api-key."},401);
  const client=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
  const hash=await sha256(apiKey);const{data:credential}=await client.from("datasub_api_credentials").select("id,user_id,mode,status").eq("key_hash",hash).eq("status","active").maybeSingle();if(!credential)return json({error:"invalid_api_key",message:"The API key is invalid or revoked."},401);
+ const[{data:owner},{data:access},{data:reseller}]=await Promise.all([client.from("profiles").select("status").eq("id",credential.user_id).maybeSingle(),client.from("customer_service_access").select("status").eq("user_id",credential.user_id).eq("product","datasub").maybeSingle(),client.from("datasub_reseller_accounts").select("status,api_access_approved").eq("user_id",credential.user_id).maybeSingle()]);
+ if(owner?.status!=="active"||access?.status!=="active"||reseller?.status!=="active"||reseller?.api_access_approved!==true)return json({error:"api_access_inactive",message:"DataSub API access is not active for this account."},403);
  let status=200,response:any;
  try{
   if(req.method==="GET"&&endpoint==="/health")response={status:"ok",mode:credential.mode,service:"IHLink DataSub API"};
