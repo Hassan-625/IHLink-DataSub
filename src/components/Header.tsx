@@ -67,7 +67,7 @@ export function Header({ showAnnouncement = true, announcementText }: HeaderProp
           </div>
         </div>
       </div>
-      {mobileOpen && <div className="xl:hidden border-t border-border bg-white p-4 space-y-1">{nav.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{user ?  : <><Link to="/signin" className="flex-1"><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1"><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
+      {mobileOpen && <div className="xl:hidden border-t border-border bg-white p-4 space-y-1">{nav.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{!user&&<><Link to="/signin" className="flex-1"><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1"><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
     </header>
   </>;
 }
