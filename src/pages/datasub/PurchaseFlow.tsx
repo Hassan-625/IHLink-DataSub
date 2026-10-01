@@ -48,6 +48,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [pin,setPin]=useState('');
   const [reference,setReference]=useState('');
   const [failureMessage,setFailureMessage]=useState('');
+  const [refunded,setRefunded]=useState(false);
   const [processing,setProcessing]=useState(false);const[hasTransactionPin,setHasTransactionPin]=useState<boolean|null>(null);
   const [liveProducts,setLiveProducts]=useState<LiveProduct[]>([]);
   const providers=Array.from(new Set(liveProducts.map(p=>p.provider)));
@@ -86,12 +87,12 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
       body:{product_id:chosen.id,recipient:recipient.trim(),amount:value,expected_charge:quote.charge,pin,meter_type:params.get('meterType')||undefined,quantity:service==='education'?1:undefined}
     });
     setProcessing(false);
-    if(error){setReference(idempotencyKey);setChargedAmount(quote.charge);setFailureMessage(error.message);setResult('failed');showToast('error','Transaction failed',error.message);return;}
+    if(error){setReference(idempotencyKey);setChargedAmount(quote.charge);setRefunded(false);setFailureMessage(error.message);setResult('failed');showToast('error','Transaction failed',error.message);return;}
     const transactionReference=String(data?.reference||data?.transaction?.reference||'');
     setReference(transactionReference);
     setChargedAmount(Number(data?.amount??data?.transaction?.amount??quote.charge));
     const status=String(data?.status||data?.transaction?.status||'pending').toLowerCase();
-    setFailureMessage(String(data?.message||data?.error||''));setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
+    setFailureMessage(String(data?.message||data?.error||''));setRefunded(String(data?.routing_state||data?.transaction?.routing_state||'').toUpperCase()==='REFUNDED'||data?.refunded===true);setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
     await refresh();
   };
 
@@ -139,7 +140,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <XCircle className="w-10 h-10" />
               </div>
               <h2 className="text-2xl font-extrabold text-ink mb-2">Transaction Failed</h2>
-              <p className="text-sm text-muted mb-4">The provider/backend did not confirm this purchase as successful. No success receipt is issued for a failed transaction.</p><div className="mb-6 rounded-xl bg-rose-50 p-4 text-left text-sm"><div className="flex justify-between gap-4"><span className="text-muted">Reference</span><span className="break-all font-mono font-semibold">{reference||"Unavailable"}</span></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Network</span><b>{provider||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Plan</span><b>{chosen?.name||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Recipient</span><b>{recipient||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Amount</span><b>{naira(total)}</b></div>{failureMessage&&<p className="mt-3 border-t border-rose-200 pt-3 text-rose-700">{failureMessage}</p>}</div>
+              <p className="text-sm text-muted mb-4">The provider/backend did not confirm this purchase as successful. No success receipt is issued for a failed transaction.</p><div className="mb-6 rounded-xl bg-rose-50 p-4 text-left text-sm"><div className="flex justify-between gap-4"><span className="text-muted">Reference</span><span className="break-all font-mono font-semibold">{reference||"Unavailable"}</span></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Network</span><b>{provider||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Plan</span><b>{chosen?.name||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Recipient</span><b>{recipient||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Amount</span><b>{naira(total)}</b></div>{refunded&&<p className="mt-3 rounded-lg bg-emerald-50 p-3 font-semibold text-emerald-700">Wallet debit reversed automatically. The reserved amount has been refunded.</p>}{failureMessage&&<p className="mt-3 border-t border-rose-200 pt-3 text-rose-700">{failureMessage}</p>}</div>
               <div className="flex gap-3 justify-center">
                 <Button variant="secondary" onClick={() => { setResult('none'); setStep(0); }}>Try Again</Button>
                 <Link to="/datasub/support"><Button>Contact Support</Button></Link>
