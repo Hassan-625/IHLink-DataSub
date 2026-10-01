@@ -12,7 +12,8 @@ import { useToast } from '@/components/ui/Toast';
 import { naira, formatDateTime, statusLabel } from '@/lib/designTokens';
 import { useDataSubData, type DataSubTransaction } from '@/hooks/useDataSubData';
 import { ServiceLogo } from '@/components/ServiceLogo';
-import { Search, Download, RefreshCw, Eye, FileText, Filter } from 'lucide-react';
+import { Search, Download, RefreshCw, Eye, FileText } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const sidebarSections: SidebarSection[] = [
   { title: 'Main', items: [
@@ -34,7 +35,7 @@ export function DataSubTransactions() {
   const navigate=useNavigate();
   useEffect(()=>setPage(1),[search,typeFilter,statusFilter]);
   const repeat=(item:DataSubTransaction)=>{const type=item.type.toLowerCase();const route=type.includes('cable')?'/datasub/pay-cable':type.includes('education')?'/datasub/buy-education':type.includes('electric')?'/datasub/pay-electricity':type.includes('data')?'/datasub/buy-data':'/datasub/buy-airtime';navigate(`${route}?provider=${encodeURIComponent(item.service)}&recipient=${encodeURIComponent(item.recipient)}`);};
-  const printReceipt=()=>{window.print();};
+  const printReceipt=async()=>{if(!selected||selected.status!=='success'){showToast('error','Receipt unavailable','Receipts are issued only for successful transactions.');return;}const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:{reference:selected.ref,transaction_reference:selected.ref,service:selected.type,network:selected.service,provider:selected.service,plan:selected.type,recipient:selected.recipient,phone_number:selected.recipient,amount:naira(selected.amount),status:statusLabel(selected.status),date:formatDateTime(selected.date)}});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','No active DataSub receipt template is configured.');return;}const w=window.open('','_blank','noopener,noreferrer,width=900,height=720');if(!w)return;w.document.write(`<!doctype html><html><head><title>Receipt ${selected.ref}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
   const { transactions, loading, error, refresh, userName } = useDataSubData();
   const filtered = useMemo(() => transactions.filter(t => {
     const query = search.toLowerCase();
@@ -85,7 +86,7 @@ export function DataSubTransactions() {
             <span className="text-xs text-muted">{formatDateTime(t.date)}</span>,
             <div className="flex items-center justify-center gap-1">
               <button onClick={() => setSelected(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><Eye className="w-4 h-4" /></button>
-              <button onClick={() => { setSelected(t); setReceiptOpen(true); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><Download className="w-4 h-4" /></button>
+              {t.status==="success"&&<button onClick={() => { setSelected(t); setReceiptOpen(true); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted" title="Preview receipt"><Download className="w-4 h-4" /></button>}
               <button onClick={() => repeat(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><RefreshCw className="w-4 h-4" /></button>
             </div>,
           ])}
@@ -114,7 +115,7 @@ export function DataSubTransactions() {
               ))}
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" fullWidth leftIcon={<Download className="w-4 h-4" />} onClick={() => setReceiptOpen(true)}>Download Receipt</Button>
+              {selected.status==="success"&&<Button variant="secondary" fullWidth leftIcon={<Download className="w-4 h-4" />} onClick={() => setReceiptOpen(true)}>Preview Receipt</Button>}
               <Button fullWidth themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<RefreshCw className="w-4 h-4" />} onClick={() => repeat(selected)}>Repeat</Button>
             </div>
           </div>
