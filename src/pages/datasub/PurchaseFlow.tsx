@@ -47,6 +47,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [selection,setSelection]=useState('');
   const [pin,setPin]=useState('');
   const [reference,setReference]=useState('');
+  const [failureMessage,setFailureMessage]=useState('');
   const [processing,setProcessing]=useState(false);const[hasTransactionPin,setHasTransactionPin]=useState<boolean|null>(null);
   const [liveProducts,setLiveProducts]=useState<LiveProduct[]>([]);
   const providers=Array.from(new Set(liveProducts.map(p=>p.provider)));
@@ -85,14 +86,16 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
       body:{product_id:chosen.id,recipient:recipient.trim(),amount:value,expected_charge:quote.charge,pin,meter_type:params.get('meterType')||undefined,quantity:service==='education'?1:undefined}
     });
     setProcessing(false);
-    if(error){setResult('failed');showToast('error','Transaction not completed',error.message);return;}
+    if(error){setReference(idempotencyKey);setChargedAmount(quote.charge);setFailureMessage(error.message);setResult('failed');showToast('error','Transaction failed',error.message);return;}
     const transactionReference=String(data?.reference||data?.transaction?.reference||'');
     setReference(transactionReference);
     setChargedAmount(Number(data?.amount??data?.transaction?.amount??quote.charge));
     const status=String(data?.status||data?.transaction?.status||'pending').toLowerCase();
-    setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
+    setFailureMessage(String(data?.message||data?.error||''));setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
     await refresh();
   };
+
+  const previewReceipt=async()=>{if(result!=='success'||!supabase)return;const values={reference,transaction_reference:reference,service:'Data',network:provider,provider,plan:chosen?.name||selection,recipient,phone_number:recipient,amount:naira(total),status:'Successful',date:new Date().toLocaleString('en-NG')};const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:values});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','No active DataSub receipt template is configured.');return;}const w=window.open('','_blank','noopener,noreferrer,width=900,height=720');if(!w)return;w.document.write(`<!doctype html><html><head><title>Receipt ${reference}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
 
   if (result !== 'none') {
     return (
@@ -113,7 +116,8 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <div className="flex justify-between"><span className="text-muted">Status</span><Badge variant="status" status="success" /></div>
               </div>
               <div className="flex gap-3 justify-center">
-                <Link to="/datasub/transactions"><Button variant="secondary">View Receipt</Button></Link>
+                <Button variant="secondary" onClick={()=>void previewReceipt()}>Preview Receipt</Button>
+                <Link to="/datasub/transactions"><Button variant="secondary">Transactions</Button></Link>
                 <Link to="/datasub/dashboard"><Button themeClass="bg-emerald-500 hover:bg-emerald-600">Back to Dashboard</Button></Link>
               </div>
             </div>
@@ -135,7 +139,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <XCircle className="w-10 h-10" />
               </div>
               <h2 className="text-2xl font-extrabold text-ink mb-2">Transaction Failed</h2>
-              <p className="text-sm text-muted mb-6">We could not create or complete the transaction. Check your transaction history and wallet status before trying again.</p>
+              <p className="text-sm text-muted mb-4">The provider/backend did not confirm this purchase as successful. No success receipt is issued for a failed transaction.</p><div className="mb-6 rounded-xl bg-rose-50 p-4 text-left text-sm"><div className="flex justify-between gap-4"><span className="text-muted">Reference</span><span className="break-all font-mono font-semibold">{reference||"Unavailable"}</span></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Network</span><b>{provider||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Plan</span><b>{chosen?.name||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Recipient</span><b>{recipient||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Amount</span><b>{naira(total)}</b></div>{failureMessage&&<p className="mt-3 border-t border-rose-200 pt-3 text-rose-700">{failureMessage}</p>}</div>
               <div className="flex gap-3 justify-center">
                 <Button variant="secondary" onClick={() => { setResult('none'); setStep(0); }}>Try Again</Button>
                 <Link to="/datasub/support"><Button>Contact Support</Button></Link>
