@@ -7,6 +7,7 @@ import { StatCard, BarChart, DonutChart, AnimatedCounter } from '@/components/ui
 import { useToast } from '@/components/ui/Toast';
 import { naira } from '@/lib/designTokens';
 import { useDataSubData } from '@/hooks/useDataSubData';
+import { useDataSubTier } from '@/hooks/useDataSubTier';
 import { ServiceLogo } from '@/components/ServiceLogo';
 import {
   Wallet, Smartphone, Wifi, Zap, Tv, GraduationCap, ArrowRight, Plus,
@@ -42,6 +43,8 @@ const sidebarSections: SidebarSection[] = [
 export function DataSubDashboard() {
   const navigate=useNavigate();
   const { wallet, transactions, beneficiaries, loading, error, userName } = useDataSubData();
+  const { tier } = useDataSubTier();
+  const roleLabel = tier === 'api_user' ? 'API User' : tier === 'top_seller' ? 'Top Seller' : tier === 'reseller' ? 'Reseller' : 'Smart Earner';
   const successful = transactions.filter(t => t.status === 'success');
   const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
   const monthSpent = successful.filter(t => new Date(t.date) >= monthStart).reduce((sum, t) => sum + t.amount, 0);
@@ -53,7 +56,7 @@ export function DataSubDashboard() {
       product="datasub"
       sections={sidebarSections}
       userName={userName}
-      userRole="Smart Earner"
+      userRole={roleLabel}
       pageTitle="Dashboard"
       pageBreadcrumb={[{ label: 'Overview' }]}
       rightActions={<Button size="sm" themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Plus className="w-4 h-4" />} onClick={() => navigate('/datasub/wallet')}>Fund Wallet</Button>}
