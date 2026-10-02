@@ -67,7 +67,7 @@ export function Header({ showAnnouncement = true, announcementText }: HeaderProp
           </div>
         </div>
       </div>
-      {mobileOpen && <div className="xl:hidden border-t border-border bg-white p-4 space-y-1">{nav.map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{!user&&<><Link to="/signin" className="flex-1"><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1"><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
+      {mobileOpen && <div className="xl:hidden max-h-[calc(100vh-5rem)] overflow-y-auto border-t border-border bg-white p-4 space-y-1">{nav.flatMap(item=>item.children?[{label:item.label,href:item.href},...item.children.map(child=>({label:child.label,href:child.href}))]:[{label:item.label,href:item.href}]).map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{user&&profile?.role==='super_admin'?<Link to="/admin" className="flex-1" onClick={()=>setMobileOpen(false)}><Button fullWidth themeClass={theme.btnClass}>DataSub Admin</Button></Link>:!user&&<><Link to="/signin" className="flex-1" onClick={()=>setMobileOpen(false)}><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1" onClick={()=>setMobileOpen(false)}><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
     </header>
   </>;
 }
