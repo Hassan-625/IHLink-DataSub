@@ -7,6 +7,7 @@ import { Accordion } from '@/components/ui/Stepper';
 import { naira } from '@/lib/designTokens';
 import { networks, electricityProviders } from '@/lib/datasubServices';
 import { supabase } from '@/lib/supabase';
+import { loadLiveCatalogue } from '@/lib/datasubCatalogue';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect, useMemo, useState } from 'react';
 import { ServiceLogo } from '@/components/ServiceLogo';
@@ -18,10 +19,10 @@ import {
 } from 'lucide-react';
 
 const faqItems = [
-  { question: 'How do I fund my wallet?', answer: 'Wallet funding methods are shown in your wallet section. Card and automated funding options will be enabled as the production payment integration is connected.' },
+  { question: 'How do I fund my wallet?', answer: 'Open your wallet to activate a supported BillStack dedicated bank account. Your IHLink wallet is credited only after BillStack verifies the transfer.' },
   { question: 'How long do transactions take?', answer: 'Transaction completion time depends on the connected service provider. Your transaction history shows the current status of each submitted purchase.' },
   { question: 'What are the reseller benefits?', answer: 'Resellers can access tier-based pricing, a reseller dashboard, commission records and eligible API-access upgrades. Available rates and features depend on the configured reseller tier.' },
-  { question: 'Is my money safe?', answer: 'IHLink uses authenticated accounts, database access controls and secure transport. Additional payment and provider security controls will be enabled with the production integrations.' },
+  { question: 'Is my money safe?', answer: 'IHLink uses authenticated accounts, database access controls and secure transport. Wallet funding is credited only after verified BillStack payment confirmation, and DataSub purchases are protected by your transaction PIN.' },
   { question: 'Which networks are supported?', answer: 'We support MTN, Airtel, Glo, and T2 for airtime and data. We also support major electricity providers and cable TV providers.' },
 ];
 
@@ -38,9 +39,9 @@ export function DataSubHome() {
     if(!supabase){setWalletScope(user?.id||null);setWalletLoading(false);setWalletError('Wallet is unavailable.');return;}
     const db=supabase;
     void (async()=>{
-      const products=await db.from('datasub_products').select('code,provider,name,validity_label,retail_price,service_type,plan_category').eq('is_active',true).order('provider').order('sort_order').limit(1000);
+      const products=await loadLiveCatalogue('data');
       if(!active)return;
-      setDataPlans((products.data||[]).filter(x=>x.service_type==='data').map(x=>({...x,retail_price:Number(x.retail_price)})));
+      setDataPlans(products.map(x=>({code:x.code,provider:x.provider,name:x.name,validity_label:x.validity_label,retail_price:Number(x.retail_price),plan_category:x.plan_category})));
     })();
     if(user)void (async()=>{
       const w=await db.from('datasub_wallets').select('balance').eq('user_id',user.id).maybeSingle();
@@ -120,7 +121,7 @@ export function DataSubHome() {
       </section>
 
       <section className="py-16 bg-white">
-        <div className="px-6 lg:px-10 max-w-[1280px] mx-auto"><div className="max-w-3xl"><Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">All Data Services</Badge><h2 className="text-3xl font-extrabold text-ink">Every network and data type in one catalogue</h2><p className="mt-2 text-sm leading-6 text-muted">Compare the live MTN, Airtel, Glo and T2 catalogue in one place. SME, Gifting and Corporate Gifting remain clearly identified from the configured product data.</p></div><div className="mt-8 overflow-x-auto rounded-2xl border border-border shadow-sm"><table className="w-full min-w-[860px] text-left"><thead className="sticky top-0 z-20 bg-emerald-50 text-xs uppercase tracking-wide text-emerald-900 shadow-sm"><tr>{['Network','Data type','Plan','Validity','Smart Earner price','Action'].map(h=><th key={h} className="p-4">{h}</th>)}</tr></thead><tbody>{groupedDataPlans.flatMap(group=>group.plans.map((plan,index)=><tr key={plan.code} className="border-t align-middle hover:bg-emerald-50/40"><td className="p-4">{index===0?<div className="flex items-center gap-3"><ServiceLogo name={group.network} size="sm"/><span className="font-extrabold">{group.network}</span></div>:<span className="sr-only">{group.network}</span>}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold">{plan.plan_category||'Data'}</span></td><td className="p-4 font-semibold">{plan.name}</td><td className="p-4 text-sm text-muted">{plan.validity_label||'See plan details'}</td><td className="p-4 font-extrabold text-emerald-700">{naira(plan.retail_price)}</td><td className="p-4"><Link to="/datasub/buy-data" className="font-bold text-emerald-700">Buy data →</Link></td></tr>))}{!dataPlans.length&&<tr><td colSpan={6} className="p-8 text-center text-sm text-muted">No active data plans are currently available.</td></tr>}</tbody></table></div><p className="mt-3 text-xs text-muted">Catalogue rows are loaded from the active DataSub product configuration; inactive products are not advertised.</p></div>
+        <div className="px-6 lg:px-10 max-w-[1280px] mx-auto"><div className="max-w-3xl"><Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">All Data Services</Badge><h2 className="text-3xl font-extrabold text-ink">Every network and data type in one catalogue</h2><p className="mt-2 text-sm leading-6 text-muted">Compare the live MTN, Airtel, Glo and T2 catalogue in one place. SME, Gifting and Corporate Gifting remain clearly identified from the configured product data.</p></div><div className="mt-8 overflow-x-auto rounded-2xl border border-border shadow-sm"><table className="w-full min-w-[860px] text-left"><thead className="sticky top-0 z-20 bg-emerald-50 text-xs uppercase tracking-wide text-emerald-900 shadow-sm"><tr>{['Network','Data type','Plan','Validity','Smart Earner price','Action'].map(h=><th key={h} className="p-4">{h}</th>)}</tr></thead><tbody>{groupedDataPlans.flatMap(group=>group.plans.map((plan,index)=><tr key={plan.code} className="border-t align-middle hover:bg-emerald-50/40"><td className="p-4">{index===0?<div className="flex items-center gap-3"><ServiceLogo name={group.network} size="sm"/><span className="font-extrabold">{group.network}</span></div>:<span className="sr-only">{group.network}</span>}</td><td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold">{plan.plan_category||'Data'}</span></td><td className="p-4 font-semibold">{plan.name}</td><td className="p-4 text-sm text-muted">{plan.validity_label||'See plan details'}</td><td className="p-4 font-extrabold text-emerald-700">{naira(plan.retail_price)}</td><td className="p-4"><Link to="/datasub/buy-data" className="font-bold text-emerald-700">Buy data →</Link></td></tr>))}{!dataPlans.length&&<tr><td colSpan={6} className="p-8 text-center text-sm text-muted">No active data plans are currently available.</td></tr>}</tbody></table></div><p className="mt-3 text-xs text-muted">Catalogue rows are loaded from the live customer catalogue; plans without a currently available provider route are not advertised.</p></div>
       </section>
 
       {/* Data Plan Cards */}
