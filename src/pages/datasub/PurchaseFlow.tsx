@@ -165,7 +165,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step === 0 && (
               <div>
                 <h3 className="text-lg font-bold text-ink mb-4">Select {service === 'airtime' || service === 'data' ? 'Network' : service === 'electricity' ? 'Provider' : service === 'cable' ? 'Provider' : 'Exam'}</h3>
-                {!providers.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">The service catalogue is ready, but provider integration is pending.</div>}
+                {!providers.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">No provider route is currently available for this service. Availability returns automatically when an enabled provider passes health and balance checks.</div>}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {providers.map((name, i) => (
                     
