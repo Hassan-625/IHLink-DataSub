@@ -106,6 +106,8 @@ export function DataSubHome() {
         </div>
       </section>
 
+      {managedBlocks.filter((x:any)=>x.section_key!=='hero').map((block:any)=><section key={block.section_key} className="py-12 bg-white"><div className="px-6 lg:px-10 max-w-[1280px] mx-auto"><div className={block.layout==='centered'?'mx-auto max-w-3xl text-center':'grid gap-6 md:grid-cols-2 items-center'}><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{block.eyebrow||''}</p><h2 className="mt-2 text-3xl font-extrabold text-ink">{block.title}</h2>{block.subtitle&&<p className="mt-2 font-semibold text-muted">{block.subtitle}</p>}{block.body&&<p className="mt-3 text-sm leading-6 text-muted">{block.body}</p>}<div className="mt-4 flex flex-wrap gap-3">{block.cta_label&&block.cta_link&&<Link to={block.cta_link}><Button>{block.cta_label}</Button></Link>}{block.secondary_cta_label&&block.secondary_cta_link&&<Link to={block.secondary_cta_link}><Button variant="secondary">{block.secondary_cta_label}</Button></Link>}</div></div>{block.image_url&&<img src={block.image_url} alt={block.title} className="max-h-80 w-full rounded-2xl object-cover"/>}</div></div></section>)}
+
       <ExperiencePhoto src="/images/service-scene-clean.webp" alt="IHLink DataSub branded digital services concept" illustration eyebrow="Made for everyday transactions" title="Airtime, data and bills from the device already in your hand" text="From a first airtime purchase to running a reseller business, clear screens and helpful support keep every transaction comfortable." accentClass="text-emerald-700" />
 
       {/* Supported Networks */}
