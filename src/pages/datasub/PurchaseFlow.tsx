@@ -198,7 +198,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                         <p className="text-sm font-bold text-emerald-600 mt-1">{naira(priceFor(p))}</p>
                       </button>
                     ))}
-                    {!liveProducts.filter(p=>!provider||p.provider===provider).length&&<p className="col-span-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">This service is included in the website catalogue. Live product pricing will appear after the production provider integration is connected.</p>}
+                    {!liveProducts.filter(p=>!provider||p.provider===provider).length&&<p className="col-span-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">No currently routable product is available for this provider. Products return automatically when an enabled provider passes health, balance and routing checks.</p>}
                   </div>
                 ) : (
                   <div>
