@@ -25,8 +25,8 @@ const nav: NavItem[] = [
   { label: 'Pricing', href: '/datasub/pricing' },
   { label: 'More', href: '/datasub/services', children: [
     { label: 'Education PINs', href: '/datasub/education', description: 'Education and examination services' },
-    { label: 'Airtime to Cash', href: '/datasub/airtime-to-cash', description: 'Convert supported airtime' },
-    { label: 'Print Cards', href: '/datasub/print-cards', description: 'Printable voucher card batches' },
+    { label: 'Airtime to Cash Request', href: '/datasub/airtime-to-cash', description: 'Request-only while conversion provider support is pending' },
+    { label: 'Print Cards Request', href: '/datasub/print-cards', description: 'Request-only while authorized PIN generation is pending' },
     { label: 'Wallet & Payments', href: '/datasub/wallet', description: 'Funding, payment and wallet activity' },
     { label: 'Transactions', href: '/datasub/transactions', description: 'Transaction history and receipts' },
     { label: 'Get in Touch', href: '/datasub/support', description: 'Support, enquiries and service assistance' },
