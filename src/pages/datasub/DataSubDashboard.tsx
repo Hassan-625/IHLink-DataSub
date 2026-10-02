@@ -47,6 +47,7 @@ export function DataSubDashboard() {
   const [managedFeatures,setManagedFeatures]=useState<any[]>([]);
   useEffect(()=>{if(!supabase)return;let active=true;void supabase.from('platform_feature_content').select('module_key,feature_key,title,description,badge_text,help_text,cta_label,cta_link,sort_order,is_visible,is_enabled').eq('platform_key','datasub').eq('is_visible',true).order('sort_order').then(r=>{if(active&&!r.error)setManagedFeatures(r.data||[])});return()=>{active=false}},[]);
   const featureEnabled=(key:string)=>{const f=managedFeatures.find(x=>x.feature_key===key);return f?f.is_enabled!==false:true};
+  const managedSidebar:SidebarSection[]=sidebarSections.map(section=>({...section,items:section.items.filter(item=>{if(item.href.includes('airtime-to-cash')||item.href.includes('print-cards'))return featureEnabled('unsupported_service_requests');if(item.href.includes('/pricing'))return featureEnabled('tier_upgrades');if(item.href.includes('/support'))return featureEnabled('notifications_support');return true})}));
   const { wallet, transactions, beneficiaries, loading, error, userName } = useDataSubData();
   const { tier } = useDataSubTier();
   const roleLabel = tier === 'api_user' ? 'API User' : tier === 'top_seller' ? 'Top Seller' : tier === 'reseller' ? 'Reseller' : 'Smart Earner';
@@ -59,7 +60,7 @@ export function DataSubDashboard() {
   return (
     <DashboardLayout
       product="datasub"
-      sections={sidebarSections}
+      sections={managedSidebar}
       userName={userName}
       userRole={roleLabel}
       pageTitle="Dashboard"
@@ -77,7 +78,7 @@ export function DataSubDashboard() {
           </div>
           <div className="flex gap-3">
             <Button className="bg-white text-emerald-600 hover:bg-gray-100" leftIcon={<Plus className="w-4 h-4" />} onClick={() => navigate('/datasub/wallet')}>Fund Wallet</Button>
-            <Link to="/datasub/pricing"><Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20" leftIcon={<Gift className="w-4 h-4" />}>Reseller / API</Button></Link>
+            {featureEnabled('tier_upgrades')&&<Link to="/datasub/pricing"><Button variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20" leftIcon={<Gift className="w-4 h-4" />}>Reseller / API</Button></Link>}
           </div>
         </div>
       </Card>
@@ -176,7 +177,7 @@ export function DataSubDashboard() {
               <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><LifeBuoy className="w-5 h-5" /></div>
               <div><h3 className="text-sm font-bold text-ink">Need Help?</h3><p className="text-xs text-muted">Account and transaction support</p></div>
             </div>
-            <Link to="/datasub/support"><Button size="sm" variant="secondary" fullWidth>Contact Support</Button></Link>
+            {featureEnabled('notifications_support')?<Link to="/datasub/support"><Button size="sm" variant="secondary" fullWidth>Contact Support</Button></Link>:<p className="text-xs text-muted">Support entry is currently unavailable.</p>}
           </Card>
         </div>
       </div>
