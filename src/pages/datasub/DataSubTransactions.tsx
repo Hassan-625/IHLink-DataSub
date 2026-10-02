@@ -124,7 +124,7 @@ export function DataSubTransactions() {
 
       {/* Receipt Modal */}
       <Modal open={receiptOpen} onClose={() => setReceiptOpen(false)} title="Transaction Receipt" size="sm"
-        footer={<><Button variant="secondary" onClick={() => setReceiptOpen(false)}>Close</Button><Button themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Download className="w-4 h-4" />} onClick={printReceipt}>Download PDF</Button></>}>
+        footer={<><Button variant="secondary" onClick={() => setReceiptOpen(false)}>Close</Button><Button themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Download className="w-4 h-4" />} onClick={printReceipt}>Open Print / Save PDF</Button></>}>
         {selected && (
           <div className="print-document space-y-4 bg-white p-4 text-slate-900">
             <div className="text-center pb-4 border-b border-border">
