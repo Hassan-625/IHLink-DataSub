@@ -8,6 +8,8 @@ import { useToast } from '@/components/ui/Toast';
 import { naira } from '@/lib/designTokens';
 import { useDataSubData } from '@/hooks/useDataSubData';
 import { useDataSubTier } from '@/hooks/useDataSubTier';
+import { supabase } from '@/lib/supabase';
+import { useEffect, useState } from 'react';
 import { ServiceLogo } from '@/components/ServiceLogo';
 import {
   Wallet, Smartphone, Wifi, Zap, Tv, GraduationCap, ArrowRight, Plus,
@@ -42,6 +44,9 @@ const sidebarSections: SidebarSection[] = [
 
 export function DataSubDashboard() {
   const navigate=useNavigate();
+  const [managedFeatures,setManagedFeatures]=useState<any[]>([]);
+  useEffect(()=>{if(!supabase)return;let active=true;void supabase.from('platform_feature_content').select('module_key,feature_key,title,description,badge_text,help_text,cta_label,cta_link,sort_order,is_visible,is_enabled').eq('platform_key','datasub').eq('is_visible',true).order('sort_order').then(r=>{if(active&&!r.error)setManagedFeatures(r.data||[])});return()=>{active=false}},[]);
+  const featureEnabled=(key:string)=>{const f=managedFeatures.find(x=>x.feature_key===key);return f?f.is_enabled!==false:true};
   const { wallet, transactions, beneficiaries, loading, error, userName } = useDataSubData();
   const { tier } = useDataSubTier();
   const roleLabel = tier === 'api_user' ? 'API User' : tier === 'top_seller' ? 'Top Seller' : tier === 'reseller' ? 'Reseller' : 'Smart Earner';
@@ -77,8 +82,9 @@ export function DataSubDashboard() {
         </div>
       </Card>
 
+      {managedFeatures.length>0&&<Card padding="lg" className="mb-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Managed by IHLink Command Center</p><h2 className="text-lg font-extrabold text-ink">Available DataSub features</h2></div><Badge>{managedFeatures.filter(x=>x.is_enabled).length} enabled</Badge></div><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{managedFeatures.filter(x=>x.is_enabled).map((f:any)=><div key={f.feature_key} className="rounded-xl border p-3"><p className="text-xs font-bold uppercase text-muted">{f.module_key}</p><h3 className="font-bold text-ink">{f.title}</h3>{f.description&&<p className="mt-1 text-xs text-muted">{f.description}</p>}{f.cta_link&&<Link to={f.cta_link.startsWith('/admin/')?'/datasub/support':f.cta_link} className="mt-2 inline-block text-xs font-bold text-emerald-700">{f.cta_label||'Open'} →</Link>}</div>)}</div></Card>}
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+      {featureEnabled('live_catalogue')&&<div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
           { icon: Smartphone, label: 'Airtime', href: '/datasub/buy-airtime', color: 'bg-emerald-50 text-emerald-600' },
           { icon: Wifi, label: 'Data', href: '/datasub/buy-data', color: 'bg-sky-50 text-sky-600' },
@@ -93,7 +99,7 @@ export function DataSubDashboard() {
             </Card>
           </Link>
         ))}
-      </div>
+      </div>}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
