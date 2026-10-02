@@ -32,6 +32,7 @@ export function DataSubHome() {
   const [walletScope,setWalletScope]=useState<string|null>(null);
   const [walletLoading,setWalletLoading]=useState(false);
   const [walletError,setWalletError]=useState('');
+  const [managedBlocks,setManagedBlocks]=useState<any[]>([]);
   const [dataPlans, setDataPlans] = useState<Array<{code:string;provider:string;name:string;validity_label:string|null;retail_price:number;plan_category?:string|null}>>([]);
   useEffect(() => {
     let active=true;
@@ -39,6 +40,7 @@ export function DataSubHome() {
     if(!supabase){setWalletScope(user?.id||null);setWalletLoading(false);setWalletError('Wallet is unavailable.');return;}
     const db=supabase;
     void (async()=>{
+      const blocks=await db.from('site_content_blocks').select('section_key,eyebrow,title,subtitle,body,image_url,background_image_url,cta_label,cta_link,secondary_cta_label,secondary_cta_link,content_settings,layout,theme,sort_order').eq('page_key','datasub').eq('page_path','/').eq('is_visible',true).order('sort_order');if(active&&!blocks.error)setManagedBlocks(blocks.data||[]);
       const products=await loadLiveCatalogue('data');
       if(!active)return;
       setDataPlans(products.map(x=>({code:x.code,provider:x.provider,name:x.name,validity_label:x.validity_label,retail_price:Number(x.retail_price),plan_category:x.plan_category})));
@@ -52,6 +54,7 @@ export function DataSubHome() {
     })();
     return()=>{active=false;};
   },[user?.id]);
+  const heroBlock=managedBlocks.find((x:any)=>x.section_key==='hero');
   const networkOrder=['MTN','Airtel','Glo','T2'];
   const groupedDataPlans=useMemo(()=>networkOrder.map(network=>({network,plans:dataPlans.filter(plan=>plan.provider.toLowerCase()===network.toLowerCase()||(network==='T2'&&['9mobile','t2'].includes(plan.provider.toLowerCase())))})).filter(group=>group.plans.length>0),[dataPlans]);
   return (
@@ -64,11 +67,11 @@ export function DataSubHome() {
           <div className="grid grid-cols-12 gap-8 items-center">
             <div className="col-span-12 lg:col-span-7">
               <Badge className="bg-white/10 text-white border-white/20 mb-4">VTU & Digital Services</Badge>
-              <h1 className="text-5xl font-extrabold mb-4 leading-tight">Airtime, Data, Bills & More — All in One Place</h1>
-              <p className="text-lg text-emerald-50 mb-6 max-w-xl">Instant airtime top-up, data bundles, electricity bills, cable TV subscriptions and educational PINs. Built for convenient digital-service access in Nigeria.</p>
+              <h1 className="text-5xl font-extrabold mb-4 leading-tight">{heroBlock?.title||'Airtime, Data, Bills & More — All in One Place'}</h1>
+              <p className="text-lg text-emerald-50 mb-6 max-w-xl">{heroBlock?.subtitle||heroBlock?.body||'Instant airtime top-up, data bundles, electricity bills, cable TV subscriptions and educational PINs. Built for convenient digital-service access in Nigeria.'}</p>
               <div className="flex flex-wrap gap-4">
-                <Link to={'/datasub/dashboard'}><Button size="xl" variant="secondary" className="!bg-white !text-emerald-700 hover:!bg-emerald-50 border-white">Get Started</Button></Link>
-                <Link to="/datasub/pricing"><Button size="xl" variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">View Pricing</Button></Link>
+                <Link to={'/datasub/dashboard'}><Button size="xl" variant="secondary" className="!bg-white !text-emerald-700 hover:!bg-emerald-50 border-white">{heroBlock?.cta_label||'Get Started'}</Button></Link>
+                <Link to="/datasub/pricing"><Button size="xl" variant="secondary" className="bg-white/10 text-white border-white/20 hover:bg-white/20">{heroBlock?.secondary_cta_label||'View Pricing'}</Button></Link>
               </div>
             </div>
             <div className="col-span-12 lg:col-span-5">
