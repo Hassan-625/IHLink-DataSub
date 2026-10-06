@@ -6,7 +6,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 
 const faqs = [
-  { question: 'How do I fund my DataSub wallet?', answer: 'Open the Wallet page to see the funding methods currently available to your account. Additional automated card and bank funding options will be enabled with the production payment integration.' },
+  { question: 'How do I fund my DataSub wallet?', answer: 'Open your Wallet to create or view your BillStack virtual bank account. Transfer using its displayed details and fees. Only a confirmed BillStack transfer credits your DataSub wallet.' },
   { question: 'What networks are supported for airtime and data?', answer: 'We support MTN, Airtel, Glo, and T2 for both airtime top-up and data bundle purchases.' },
   { question: 'How long do transactions take?', answer: 'Completion time depends on the connected provider. Submitted purchases remain visible in your transaction history with their current status.' },
   { question: 'What happens if a transaction fails?', answer: 'Failed or unresolved transactions remain traceable by reference. Refund handling follows the status returned by the connected provider and the DataSub transaction workflow; contact support if a transaction needs review.' },
