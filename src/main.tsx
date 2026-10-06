@@ -1,3 +1,4 @@
+import{AccountClosureControl}from'@/components/AccountClosureControl';
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -50,7 +51,7 @@ createRoot(root).render(
     <StartupErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <App />
+          <App/><AccountClosureControl/>
         </AuthProvider>
       </BrowserRouter>
     </StartupErrorBoundary>
