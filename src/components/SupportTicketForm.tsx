@@ -14,10 +14,10 @@ type SupportProduct =
   | "account";
 
 export function SupportTicketForm({
-  product,
-  accentClass = "bg-royal-600 hover:bg-royal-700",
+  product = "datasub",
+  accentClass = "bg-emerald-600 hover:bg-emerald-700",
 }: {
-  product: SupportProduct;
+  product?: SupportProduct;
   accentClass?: string;
 }) {
   const { user } = useAuth();
@@ -31,7 +31,7 @@ export function SupportTicketForm({
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const field =
-    "w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-royal-500";
+    "w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-emerald-500";
 
   async function submit(event: FormEvent) {
     event.preventDefault();
