@@ -4,17 +4,20 @@ import { PageShell } from '@/components/PageShell';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Accordion } from '@/components/ui/Stepper';
+import { ExperiencePhoto } from '@/components/ExperiencePhoto';
 import { ServiceLogo } from '@/components/ServiceLogo';
 import { IH_LINK_LOGO } from '@/assets/ihlinkLogo';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { naira } from '@/lib/designTokens';
 import { networks } from '@/lib/datasubServices';
-import { Wifi, Smartphone, Zap, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Wifi, Smartphone, Zap, Tv, GraduationCap, ArrowRight, ShieldCheck } from 'lucide-react';
 
 const featuredServices = [
   { name: 'Mobile data', description: 'Choose your network, data type and available plan.', href: '/datasub/buy-data', action: 'Buy data', icon: Wifi },
   { name: 'Airtime', description: 'Top up your phone from your DataSub wallet.', href: '/datasub/buy-airtime', action: 'Buy airtime', icon: Smartphone },
+  { name: 'Cable TV', description: 'Choose a package for your supported TV subscription.', href: '/datasub/pay-cable', action: 'Subscribe to cable', icon: Tv },
+  { name: 'Education PINs', description: 'Browse available exam and result-checking PINs.', href: '/datasub/buy-education', action: 'Browse education', icon: GraduationCap },
   { name: 'Electricity', description: 'Find your provider and pay a supported meter.', href: '/datasub/pay-electricity', action: 'Pay electricity', icon: Zap },
 ];
 const faqItems = [
@@ -51,7 +54,7 @@ export function DataSubHome() {
       <div className="mx-auto grid max-w-[1280px] items-center gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:px-10">
         <div>
           <p className="mb-3 text-sm font-bold text-emerald-100">IHLink DataSub</p>
-          <h1 className="max-w-xl text-3xl font-extrabold leading-tight sm:text-5xl">{hero?.title||'Data, airtime and electricity, made simple.'}</h1>
+          <h1 className="max-w-xl text-3xl font-extrabold leading-tight sm:text-5xl">{hero?.title||'Data, airtime and bills, made simple.'}</h1>
           <p className="mt-4 max-w-xl text-base leading-7 text-emerald-50">{hero?.subtitle||'Start with the everyday services you use most. Choose a plan, confirm its price and follow each transaction in your account.'}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link to="/datasub/buy-data"><Button size="xl" variant="secondary" className="!bg-white !text-emerald-800">Buy data</Button></Link>
@@ -68,10 +71,11 @@ export function DataSubHome() {
         </Card>
       </div>
     </section>
+    <ExperiencePhoto src="/images/service-scene-clean.webp" alt="IHLink DataSub branded digital services concept" illustration eyebrow="Made for everyday transactions" title="Airtime, data and bills from the device already in your hand" text="Choose the service you need, review your payment and follow your purchases in one place." accentClass="text-emerald-700" />
     <section className="mx-auto max-w-[1280px] px-4 py-12 sm:px-6 lg:px-10">
       <h2 className="text-2xl font-extrabold text-ink">Start with an everyday service</h2>
       <p className="mt-2 text-sm text-muted">A few favourites here. The full service list is one tap away.</p>
-      <div className="mt-6 grid gap-4 md:grid-cols-3">{featuredServices.map(service=><Card key={service.href} padding="lg" className="flex flex-col">
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{featuredServices.map(service=><Card key={service.href} padding="lg" className="flex flex-col">
         <service.icon className="mb-4 h-8 w-8 text-emerald-600" aria-hidden="true"/>
         <h3 className="text-xl font-bold text-ink">{service.name}</h3>
         <p className="mb-5 mt-2 flex-1 text-sm leading-6 text-muted">{service.description}</p>
