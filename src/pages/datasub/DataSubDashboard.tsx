@@ -56,7 +56,7 @@ const customerFeatureDestinations: Record<string, { href: string; label: string 
 export function DataSubDashboard() {
   const navigate=useNavigate();
   const [managedFeatures,setManagedFeatures]=useState<any[]>([]);
-  useEffect(()=>{if(!supabase)return;let active=true;void supabase.from('platform_feature_content').select('module_key,feature_key,title,description,badge_text,help_text,cta_label,cta_link,sort_order,is_visible,is_enabled').eq('platform_key','datasub').eq('is_visible',true).order('sort_order').then(r=>{if(active&&!r.error)setManagedFeatures(r.data||[])});return()=>{active=false}},[]);
+  useEffect(()=>{if(!supabase)return;let active=true;void supabase.from('platform_feature_content').select('module_key,feature_key,title,description,badge_text,help_text,cta_label,cta_link,sort_order,is_visible,is_enabled').eq('platform_key','datasub').eq('audience','customer').eq('is_visible',true).order('sort_order').then(r=>{if(active&&!r.error)setManagedFeatures(r.data||[])});return()=>{active=false}},[]);
   const customerFeatures = managedFeatures.filter(f => f.is_enabled).flatMap(f => {
     if (!f.cta_link?.startsWith('/admin/')) return [f];
     const destination = customerFeatureDestinations[f.module_key];
