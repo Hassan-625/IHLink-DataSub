@@ -1,3 +1,4 @@
+import {NativeMobileShell} from '@/components/NativeMobileShell';
 import{AccountClosureControl}from'@/components/AccountClosureControl';
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
@@ -51,7 +52,7 @@ createRoot(root).render(
     <StartupErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <App/><AccountClosureControl/>
+          <NativeMobileShell><App/><AccountClosureControl/></NativeMobileShell>
         </AuthProvider>
       </BrowserRouter>
     </StartupErrorBoundary>
