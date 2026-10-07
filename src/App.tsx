@@ -228,14 +228,7 @@ export default function App() {
 
           <Route
             path="/datasub/services"
-            element={
-              <ProtectedRoute
-                product="datasub"
-                requireServiceAccess
-              >
-                <DataSubServices />
-              </ProtectedRoute>
-            }
+            element={<DataSubServices />}
           />
 
           <Route
