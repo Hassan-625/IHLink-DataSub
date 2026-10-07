@@ -96,16 +96,16 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
       body:{product_id:chosen.id,recipient:recipient.trim(),amount:value,expected_charge:quote.charge,pin,meter_type:params.get('meterType')||undefined,quantity:service==='education'?1:undefined}
     });
     setProcessing(false);
-    if(error){setReference(idempotencyKey);setChargedAmount(quote.charge);setRefunded(false);setFailureMessage(error.message);setResult('failed');showToast('error','Transaction failed',error.message);return;}
+    if(error){setReference(idempotencyKey);setChargedAmount(quote.charge);setRefunded(false);setFailureMessage('We could not confirm the outcome. Check your transaction history before trying again.');setResult('pending');showToast('error','Confirmation unavailable','Check your transaction history before trying again.');return;}
     const transactionReference=String(data?.reference||data?.transaction?.reference||'');
     setReference(transactionReference);
     setChargedAmount(Number(data?.amount??data?.transaction?.amount??quote.charge));
     const status=String(data?.status||data?.transaction?.status||'pending').toLowerCase();
-    setFailureMessage(String(data?.message||data?.error||''));setRefunded(String(data?.routing_state||data?.transaction?.routing_state||'').toUpperCase()==='REFUNDED'||data?.refunded===true);setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
+    setFailureMessage(status==='failed'?'This purchase could not be completed. Check your wallet and contact support with the reference if you need help.':'');setRefunded(String(data?.routing_state||data?.transaction?.routing_state||'').toUpperCase()==='REFUNDED'||data?.refunded===true);setResult(status==='successful'||status==='success'?'success':status==='failed'?'failed':'pending');
     await refresh();
   };
 
-  const previewReceipt=async()=>{if(result!=='success'||!supabase)return;const values={reference,transaction_reference:reference,service:'Data',network:provider,provider,plan:chosen?.name||selection,recipient,phone_number:recipient,amount:naira(total),status:'Successful',date:new Date().toLocaleString('en-NG')};const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:values});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','No active DataSub receipt template is configured.');return;}const w=window.open('','_blank','width=900,height=720');if(!w)return;w.opener=null;w.document.write(`<!doctype html><html><head><title>Receipt ${reference}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
+  const previewReceipt=async()=>{if(result!=='success'||!supabase)return;const values={reference,transaction_reference:reference,service:'Data',network:provider,provider,plan:chosen?.name||selection,recipient,phone_number:recipient,amount:naira(total),status:'Successful',date:new Date().toLocaleString('en-NG')};const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:values});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','Your receipt could not be opened. Please try again or contact support.');return;}const w=window.open('','_blank','width=900,height=720');if(!w)return;w.opener=null;w.document.write(`<!doctype html><html><head><title>Receipt ${reference}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
 
   if (result !== 'none') {
     return (
@@ -138,7 +138,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <Clock className="w-10 h-10 animate-pulse" />
               </div>
               <h2 className="text-2xl font-extrabold text-ink mb-2">Transaction Submitted</h2>
-              <p className="text-sm text-muted">Your transaction request was created and is pending provider confirmation. Check transaction history for the latest wallet and provider status.</p>
+              <p className="text-sm text-muted">We are checking the outcome of your purchase. View your transaction history before making another payment.</p>
               <p className="mt-3 font-mono text-xs font-semibold text-ink">{reference}</p>
               <div className="mt-6 flex justify-center gap-3"><Link to="/datasub/transactions"><Button variant="secondary">View transaction</Button></Link><Link to="/datasub/dashboard"><Button>Dashboard</Button></Link></div>
             </div>
@@ -149,7 +149,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <XCircle className="w-10 h-10" />
               </div>
               <h2 className="text-2xl font-extrabold text-ink mb-2">Transaction Failed</h2>
-              <p className="text-sm text-muted mb-4">The provider/backend did not confirm this purchase as successful. No success receipt is issued for a failed transaction.</p><div className="mb-6 rounded-xl bg-rose-50 p-4 text-left text-sm"><div className="flex justify-between gap-4"><span className="text-muted">Reference</span><span className="break-all font-mono font-semibold">{reference||"Unavailable"}</span></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Network</span><b>{provider||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Plan</span><b>{chosen?.name||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Recipient</span><b>{recipient||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Amount</span><b>{naira(total)}</b></div>{refunded&&<p className="mt-3 rounded-lg bg-emerald-50 p-3 font-semibold text-emerald-700">Wallet debit reversed automatically. The reserved amount has been refunded.</p>}{failureMessage&&<p className="mt-3 border-t border-rose-200 pt-3 text-rose-700">{failureMessage}</p>}</div>
+              <p className="text-sm text-muted mb-4">This purchase could not be completed. Check your wallet and transaction history for the latest update.</p><div className="mb-6 rounded-xl bg-rose-50 p-4 text-left text-sm"><div className="flex justify-between gap-4"><span className="text-muted">Reference</span><span className="break-all font-mono font-semibold">{reference||"Unavailable"}</span></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Network</span><b>{provider||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Plan</span><b>{chosen?.name||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Recipient</span><b>{recipient||"—"}</b></div><div className="mt-2 flex justify-between gap-4"><span className="text-muted">Amount</span><b>{naira(total)}</b></div>{refunded&&<p className="mt-3 rounded-lg bg-emerald-50 p-3 font-semibold text-emerald-700">Wallet debit reversed automatically. The reserved amount has been refunded.</p>}{failureMessage&&<p className="mt-3 border-t border-rose-200 pt-3 text-rose-700">{failureMessage}</p>}</div>
               <div className="flex gap-3 justify-center">
                 <Button variant="secondary" onClick={() => { setResult('none'); setStep(0); }}>Try Again</Button>
                 <Link to="/datasub/support"><Button>Contact Support</Button></Link>
@@ -174,7 +174,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step === 0 && (
               <div>
                 <h3 className="text-lg font-bold text-ink mb-4">Select {service === 'airtime' || service === 'data' ? 'Network' : service === 'electricity' ? 'Provider' : service === 'cable' ? 'Provider' : 'Exam'}</h3>
-                {!liveProducts.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">No provider route is currently available for this service. Availability returns automatically when an enabled provider passes health and balance checks.</div>}
+                {!liveProducts.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">This service is temporarily unavailable. Please try again shortly or choose another service.</div>}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {providers.map((name, i) => (
                     
@@ -209,7 +209,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                         <p className="text-sm font-bold text-emerald-600 mt-1">{naira(priceFor(p))}</p>
                       </button>
                     ))}
-                    {!visibleProducts.length&&<p className="sm:col-span-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">No currently available plan matches this network and data type. Products return automatically when an enabled provider passes health, balance and routing checks.</p>}
+                    {!visibleProducts.length&&<p className="sm:col-span-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">No available plan matches this network and data type. Choose another data type or try again later.</p>}
                   </div>
                 ) : (
                   <div>
