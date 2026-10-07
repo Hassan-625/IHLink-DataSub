@@ -33,7 +33,7 @@ export function useDataSubData() {
       supabase.from("datasub_beneficiaries").select("id,name,service_type,provider,recipient").eq("user_id", user.id).order("created_at", { ascending: false }),
     ]);
     const firstError = walletResult.error || transactionResult.error || beneficiaryResult.error;
-    if (firstError) setError(firstError.message);
+    if (firstError) setError('Your account details could not be refreshed. Please try again shortly.');
     if (walletResult.data) setWallet({ balance: Number(walletResult.data.balance), referralBalance: Number(walletResult.data.referral_balance) });
     setTransactions((transactionResult.data || []).map((row) => ({ id: row.id, ref: row.reference, type: serviceLabel[row.service_type] || row.service_type, service: row.provider, recipient: row.recipient, amount: Number(row.amount), status: row.status, date: row.created_at })));
     setBeneficiaries((beneficiaryResult.data || []).map((row) => ({ id: row.id, name: row.name, type: serviceLabel[row.service_type] || row.service_type, provider: row.provider, recipient: row.recipient })));
