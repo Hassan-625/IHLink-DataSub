@@ -54,6 +54,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [refunded,setRefunded]=useState(false);
   const [processing,setProcessing]=useState(false);const[hasTransactionPin,setHasTransactionPin]=useState<boolean|null>(null);
   const [liveProducts,setLiveProducts]=useState<LiveProduct[]>([]);
+  const [productsLoading,setProductsLoading]=useState(true);
   const providers=service==='data' ? Array.from(new Map([...networks.map(n=>n.name),...liveProducts.map(p=>p.provider)].map(name=>[dataNetworkKey(name),name])).values()) : Array.from(new Set(liveProducts.map(p=>p.provider)));
   const networkProducts=liveProducts.filter(p=>service==='data'?dataNetworkKey(p.provider)===dataNetworkKey(provider):p.provider===provider);
   const typeKeys=Array.from(new Set(['all','sme','corporate_gifting','gifting',...networkProducts.map(dataPlanType).filter(Boolean)]));
@@ -69,7 +70,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [catalogueError,setCatalogueError]=useState('');
   useEffect(()=>{setProvider(params.get('provider')||'');setRecipient(params.get('recipient')||'');setAmount(params.get('amount')||'');setSelection(params.get('product_id')||'');setDataType('all');},[params,service]);
   useEffect(()=>{if(supabase)void supabase.rpc("datasub_has_transaction_pin").then(r=>setHasTransactionPin(Boolean(r.data)));},[]);
-  useEffect(()=>{async function loadProducts(){if(!supabase)return;let rows:LiveProduct[];try{rows=await loadLiveCatalogue(service);setCatalogueError('');}catch{setCatalogueError('The catalogue could not be loaded. Refresh before paying.');return;}setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setDataType(dataPlanType(selected)||'all');setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
+  useEffect(()=>{let active=true;setProductsLoading(true);setLiveProducts([]);async function loadProducts(){try{if(!supabase)throw new Error('Unavailable');const rows=await loadLiveCatalogue(service);if(!active)return;setCatalogueError('');setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setDataType(dataPlanType(selected)||'all');setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}catch{if(active)setCatalogueError('Available plans could not be loaded. Please refresh before paying.');}finally{if(active)setProductsLoading(false);}}void loadProducts();return()=>{active=false;};},[service,params,priceFor]);
 
   const chosen=(service==='data'||service==='cable'||service==='education')
     ? liveProducts.find(p=>p.id===selection)
@@ -78,7 +79,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   if(chosen){try{quote=quotePurchase(service,tier,{...chosen,smart_earner_price:chosen.retail_price},Number(amount));}catch{/* Do not offer payment until a valid quote exists. */}}
   const total=chargedAmount??quote?.charge??0;
 
-  const canContinue=()=>{if(step===0&&!provider){showToast('error','Select a service','Choose a provider or network before continuing.');return false;}if(step===1&&recipient.trim().length<5){showToast('error','Enter valid details','Enter a valid recipient, meter, IUC or phone number.');return false;}if(step===2){if((service==='data'||service==='cable'||service==='education')&&(!chosen||(service==='data'?dataNetworkKey(chosen.provider)!==dataNetworkKey(provider):chosen.provider!==provider)||(service==='data'&&!matchesPlanCategory(chosen,dataType)))){showToast('error','Select a product',`Choose a ${service==='data'?'plan':service==='cable'?'package':'product'} before continuing.`);return false;}if((service==='airtime'||service==='electricity')&&(!Number.isFinite(Number(amount))||Number(amount)<=0)){showToast('error','Enter an amount','Enter a valid amount before continuing.');return false;}}if(step===4&&!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return false;}return true;};
+  const canContinue=()=>{if(productsLoading||catalogueError){showToast('error','Plans unavailable','Wait for the plans to load, or refresh and try again.');return false;}if(step===0&&!provider){showToast('error','Select a service','Choose a provider or network before continuing.');return false;}if(step===1&&recipient.trim().length<5){showToast('error','Enter valid details','Enter a valid recipient, meter, IUC or phone number.');return false;}if(step===2){if((service==='data'||service==='cable'||service==='education')&&(!chosen||(service==='data'?dataNetworkKey(chosen.provider)!==dataNetworkKey(provider):chosen.provider!==provider)||(service==='data'&&!matchesPlanCategory(chosen,dataType)))){showToast('error','Select a product',`Choose a ${service==='data'?'plan':service==='cable'?'package':'product'} before continuing.`);return false;}if((service==='airtime'||service==='electricity')&&(!Number.isFinite(Number(amount))||Number(amount)<=0)){showToast('error','Enter an amount','Enter a valid amount before continuing.');return false;}}if(step===4&&!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return false;}return true;};
 
   const handleConfirm = async () => {
     if(!supabase)return;
@@ -174,7 +175,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step === 0 && (
               <div>
                 <h3 className="text-lg font-bold text-ink mb-4">Select {service === 'airtime' || service === 'data' ? 'Network' : service === 'electricity' ? 'Provider' : service === 'cable' ? 'Provider' : 'Exam'}</h3>
-                {!liveProducts.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">This service is temporarily unavailable. Please try again shortly or choose another service.</div>}
+                {productsLoading?<p role="status" className="mb-4 text-sm text-muted">Loading available plans…</p>:!catalogueError&&!liveProducts.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">This service is temporarily unavailable. Please try again shortly or choose another service.</div>}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {providers.map((name, i) => (
                     
@@ -269,7 +270,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step < 5 ? (
               <Button themeClass="bg-emerald-500 hover:bg-emerald-600" rightIcon={<ArrowRight className="w-4 h-4" />} onClick={() => {if(canContinue())setStep(step + 1);}}>Continue</Button>
             ) : (
-              <Button disabled={processing||!quote} themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Check className="w-4 h-4" />} onClick={()=>void handleConfirm()}>{processing?'Processing…':'Confirm & Pay'}</Button>
+              <Button disabled={processing||productsLoading||!quote} themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<Check className="w-4 h-4" />} onClick={()=>void handleConfirm()}>{processing?'Processing…':'Confirm & Pay'}</Button>
             )}
           </div>
         </Card>
