@@ -42,10 +42,26 @@ const sidebarSections: SidebarSection[] = [
   },
 ];
 
+
+const customerFeatureDestinations: Record<string, { href: string; label: string }> = {
+  catalogue: { href: '/datasub/services', label: 'View services' },
+  transactions: { href: '/datasub/transactions', label: 'View transactions' },
+  receipts: { href: '/datasub/transactions', label: 'View transaction receipts' },
+  access: { href: '/datasub/pricing', label: 'View tier upgrades' },
+  requests: { href: '/datasub/services', label: 'View service requests' },
+  payments: { href: '/datasub/wallet', label: 'Open DataSub wallet' },
+  support: { href: '/datasub/support', label: 'Get support' },
+};
+
 export function DataSubDashboard() {
   const navigate=useNavigate();
   const [managedFeatures,setManagedFeatures]=useState<any[]>([]);
   useEffect(()=>{if(!supabase)return;let active=true;void supabase.from('platform_feature_content').select('module_key,feature_key,title,description,badge_text,help_text,cta_label,cta_link,sort_order,is_visible,is_enabled').eq('platform_key','datasub').eq('is_visible',true).order('sort_order').then(r=>{if(active&&!r.error)setManagedFeatures(r.data||[])});return()=>{active=false}},[]);
+  const customerFeatures = managedFeatures.filter(f => f.is_enabled).flatMap(f => {
+    if (!f.cta_link?.startsWith('/admin/')) return [f];
+    const destination = customerFeatureDestinations[f.module_key];
+    return destination ? [{ ...f, cta_link: destination.href, cta_label: destination.label }] : [];
+  });
   const featureEnabled=(key:string)=>{const f=managedFeatures.find(x=>x.feature_key===key);return f?f.is_enabled!==false:true};
   const managedSidebar:SidebarSection[]=sidebarSections.map(section=>({...section,items:section.items.filter(item=>{if(item.href.includes('airtime-to-cash')||item.href.includes('print-cards'))return featureEnabled('unsupported_service_requests');if(item.href.includes('/pricing'))return featureEnabled('tier_upgrades');if(item.href.includes('/support'))return featureEnabled('notifications_support');return true})}));
   const { wallet, transactions, beneficiaries, loading, error, userName } = useDataSubData();
@@ -83,7 +99,7 @@ export function DataSubDashboard() {
         </div>
       </Card>
 
-      {managedFeatures.length>0&&<Card padding="lg" className="mb-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Managed by IHLink Command Center</p><h2 className="text-lg font-extrabold text-ink">Available DataSub features</h2></div><Badge>{managedFeatures.filter(x=>x.is_enabled).length} enabled</Badge></div><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{managedFeatures.filter(x=>x.is_enabled).map((f:any)=><div key={f.feature_key} className="rounded-xl border p-3"><p className="text-xs font-bold uppercase text-muted">{f.module_key}</p><h3 className="font-bold text-ink">{f.title}</h3>{f.description&&<p className="mt-1 text-xs text-muted">{f.description}</p>}{f.cta_link&&<Link to={f.cta_link.startsWith('/admin/')?'/datasub/support':f.cta_link} className="mt-2 inline-block text-xs font-bold text-emerald-700">{f.cta_label||'Open'} →</Link>}</div>)}</div></Card>}
+      {customerFeatures.length>0&&<Card padding="lg" className="mb-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Managed by IHLink Command Center</p><h2 className="text-lg font-extrabold text-ink">Available DataSub features</h2></div><Badge>{customerFeatures.length} enabled</Badge></div><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{customerFeatures.map((f:any)=><div key={f.feature_key} className="rounded-xl border p-3"><p className="text-xs font-bold uppercase text-muted">{f.module_key}</p><h3 className="font-bold text-ink">{f.title}</h3>{f.description&&<p className="mt-1 text-xs text-muted">{f.description}</p>}{f.cta_link&&<Link to={f.cta_link} className="mt-2 inline-block text-xs font-bold text-emerald-700">{f.cta_label||'Open'} →</Link>}</div>)}</div></Card>}
       {/* Quick Actions */}
       {featureEnabled('live_catalogue')&&<div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
