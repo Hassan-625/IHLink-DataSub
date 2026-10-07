@@ -18,7 +18,7 @@ export function DataSubAirtime(){
  const providers=useMemo(()=>Array.from(new Set(products.map(p=>p.provider))).map(name=>({name,isConfigured:true})),[products]);
  const value=Number(amount)||0,ready=provider&&phone.replace(/\D/g,'').length>=10&&value>=50;
  return <PageShell product="datasub"><div className="px-6 lg:px-10 py-12 max-w-[1280px] mx-auto">
-  <Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">Airtime Catalogue</Badge><h1 className="text-3xl font-extrabold text-ink mb-2">Buy Airtime Instantly</h1><p className="text-sm text-muted mb-8">Choose a network and amount. Purchases are routed securely through IHLink's live multi-provider backend.</p>
+  <Badge className="mb-3 bg-emerald-50 text-emerald-700 border-emerald-200">Airtime Catalogue</Badge><h1 className="text-3xl font-extrabold text-ink mb-2">Buy Airtime Instantly</h1><p className="text-sm text-muted mb-8">Choose a network and amount. Review your phone number before confirming payment.</p>
   <div className="grid grid-cols-12 gap-6"><div className="col-span-12 lg:col-span-8"><Card padding="lg"><h2 className="text-lg font-bold text-ink mb-4">Select Network</h2>
    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">{providers.map(item=><button type="button" onClick={()=>setProvider(item.name)} key={item.name} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${provider===item.name?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}><ServiceLogo name={item.name}/><span className="text-sm font-semibold">{item.name}</span></button>)}</div>
    
