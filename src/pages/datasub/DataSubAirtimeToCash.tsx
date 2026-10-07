@@ -15,7 +15,7 @@ export function DataSubAirtimeToCash(){
  const {user}=useAuth(); const navigate=useNavigate();
  const [network,setNetwork]=useState('MTN'),[phone,setPhone]=useState(''),[amount,setAmount]=useState(''),[saving,setSaving]=useState(false),[notice,setNotice]=useState('');
  const value=Number(amount)||0,ready=phone.replace(/\D/g,'').length>=10&&value>=100;
- async function submit(){if(!ready)return;if(!user){navigate('/signin',{state:{from:'/datasub/airtime-to-cash'}});return;}if(!supabase){setNotice('Service storage is unavailable.');return;}setSaving(true);const {error}=await supabase.from('datasub_airtime_conversion_requests').insert({user_id:user.id,network,sender_phone:phone,airtime_amount:value,status:'awaiting_provider'});setSaving(false);setNotice(error?error.message:'Request saved. It will remain awaiting provider until the conversion integration is activated.');if(!error){setPhone('');setAmount('');}}
+ async function submit(){if(!ready)return;if(!user){navigate('/signin',{state:{from:'/datasub/airtime-to-cash'}});return;}if(!supabase){setNotice('This service is temporarily unavailable.');return;}setSaving(true);const {error}=await supabase.from('datasub_airtime_conversion_requests').insert({user_id:user.id,network,sender_phone:phone,airtime_amount:value,status:'awaiting_provider'});setSaving(false);setNotice(error?'Your request could not be saved. Please try again.':'Your request has been received. We will notify you when it can be processed.');if(!error){setPhone('');setAmount('');}}
  return <PageShell product="datasub"><div className="mx-auto max-w-[1180px] px-6 py-12">
   <Badge className="mb-3 bg-emerald-50 text-emerald-700">Airtime to Cash</Badge>
   <h1 className="text-3xl font-extrabold text-ink">Convert Airtime to Cash</h1>
