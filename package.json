@@ -8,9 +8,14 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "android:prepare": "npm run build && npx cap add android && npx cap sync android && node scripts/prepare-android.mjs",
+    "android:sync": "npm run build && npx cap sync android && node scripts/prepare-android.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.5.3",
     "@supabase/supabase-js": "^2.57.4",
     "exceljs": "^4.4.0",
     "lucide-react": "^0.446.0",
@@ -19,6 +24,8 @@
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/cli": "8.5.3",
     "@eslint/js": "^9.36.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
