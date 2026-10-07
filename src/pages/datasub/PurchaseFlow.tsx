@@ -1,3 +1,5 @@
+import { dataNetworkKey, dataPlanType, dataPlanTypeLabel, matchesPlanCategory } from '@/lib/dataPlanFilters';
+import { networks } from '@/lib/datasubServices';
 import { useEffect, useState, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout, type SidebarSection } from '@/components/Sidebar';
@@ -42,6 +44,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<'none' | 'success' | 'failed' | 'pending'>('none');
   const [provider,setProvider]=useState('');
+  const [dataType,setDataType]=useState('all');
   const [recipient,setRecipient]=useState('');
   const [amount,setAmount]=useState('');
   const [selection,setSelection]=useState('');
@@ -51,16 +54,22 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [refunded,setRefunded]=useState(false);
   const [processing,setProcessing]=useState(false);const[hasTransactionPin,setHasTransactionPin]=useState<boolean|null>(null);
   const [liveProducts,setLiveProducts]=useState<LiveProduct[]>([]);
-  const providers=Array.from(new Set(liveProducts.map(p=>p.provider)));
+  const providers=service==='data' ? Array.from(new Map([...networks.map(n=>n.name),...liveProducts.map(p=>p.provider)].map(name=>[dataNetworkKey(name),name])).values()) : Array.from(new Set(liveProducts.map(p=>p.provider)));
+  const networkProducts=liveProducts.filter(p=>service==='data'?dataNetworkKey(p.provider)===dataNetworkKey(provider):p.provider===provider);
+  const typeKeys=Array.from(new Set(['all','sme','corporate_gifting','gifting',...networkProducts.map(dataPlanType).filter(Boolean)]));
+  const visibleProducts=service==='data'?networkProducts.filter(p=>matchesPlanCategory(p,dataType)):networkProducts;
+  function changeProvider(name:string){setProvider(name);setDataType('all');setSelection('');setAmount('');setPin('');setChargedAmount(null);}
+  function changeDataType(key:string){setDataType(key);setSelection('');setAmount('');setPin('');setChargedAmount(null);}
+  const typeFilters=service==='data'&&provider?<div className="my-5"><h4 className="mb-2 text-sm font-bold">Data type for {provider}</h4><div className="flex flex-wrap gap-2" role="group" aria-label="Data type">{typeKeys.map(key=>{const count=key==='all'?networkProducts.length:networkProducts.filter(p=>matchesPlanCategory(p,key)).length;return <button type="button" key={key} aria-pressed={dataType===key} onClick={()=>changeDataType(key)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold ${dataType===key?'border-emerald-600 bg-emerald-600 text-white':'border-border bg-white text-ink'}`}>{dataPlanTypeLabel(key)} <span className="text-xs">({count})</span></button>})}</div><p className="mt-2 text-xs text-muted">Only currently available plans for this network and data type are listed.</p></div>:null;
   const { showToast } = useToast();
   const {wallet,userName,refresh}=useDataSubData();
   const {tier,priceFor}=useDataSubTier();
   const requestKey=useRef({signature:'',key:''});
   const [chargedAmount,setChargedAmount]=useState<number|null>(null);
   const [catalogueError,setCatalogueError]=useState('');
-  useEffect(()=>{setProvider(params.get('provider')||'');setRecipient(params.get('recipient')||'');setAmount(params.get('amount')||'');setSelection(params.get('product_id')||'');},[params,service]);
+  useEffect(()=>{setProvider(params.get('provider')||'');setRecipient(params.get('recipient')||'');setAmount(params.get('amount')||'');setSelection(params.get('product_id')||'');setDataType('all');},[params,service]);
   useEffect(()=>{if(supabase)void supabase.rpc("datasub_has_transaction_pin").then(r=>setHasTransactionPin(Boolean(r.data)));},[]);
-  useEffect(()=>{async function loadProducts(){if(!supabase)return;let rows:LiveProduct[];try{rows=await loadLiveCatalogue(service);setCatalogueError('');}catch{setCatalogueError('The catalogue could not be loaded. Refresh before paying.');return;}setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
+  useEffect(()=>{async function loadProducts(){if(!supabase)return;let rows:LiveProduct[];try{rows=await loadLiveCatalogue(service);setCatalogueError('');}catch{setCatalogueError('The catalogue could not be loaded. Refresh before paying.');return;}setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setDataType(dataPlanType(selected)||'all');setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}void loadProducts();},[service,params,priceFor]);
 
   const chosen=(service==='data'||service==='cable'||service==='education')
     ? liveProducts.find(p=>p.id===selection)
@@ -69,14 +78,14 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   if(chosen){try{quote=quotePurchase(service,tier,{...chosen,smart_earner_price:chosen.retail_price},Number(amount));}catch{/* Do not offer payment until a valid quote exists. */}}
   const total=chargedAmount??quote?.charge??0;
 
-  const canContinue=()=>{if(step===0&&!provider){showToast('error','Select a service','Choose a provider or network before continuing.');return false;}if(step===1&&recipient.trim().length<5){showToast('error','Enter valid details','Enter a valid recipient, meter, IUC or phone number.');return false;}if(step===2){if((service==='data'||service==='cable'||service==='education')&&!selection){showToast('error','Select a product',`Choose a ${service==='data'?'plan':service==='cable'?'package':'product'} before continuing.`);return false;}if((service==='airtime'||service==='electricity')&&(!Number.isFinite(Number(amount))||Number(amount)<=0)){showToast('error','Enter an amount','Enter a valid amount before continuing.');return false;}}if(step===4&&!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return false;}return true;};
+  const canContinue=()=>{if(step===0&&!provider){showToast('error','Select a service','Choose a provider or network before continuing.');return false;}if(step===1&&recipient.trim().length<5){showToast('error','Enter valid details','Enter a valid recipient, meter, IUC or phone number.');return false;}if(step===2){if((service==='data'||service==='cable'||service==='education')&&(!chosen||(service==='data'?dataNetworkKey(chosen.provider)!==dataNetworkKey(provider):chosen.provider!==provider)||(service==='data'&&!matchesPlanCategory(chosen,dataType)))){showToast('error','Select a product',`Choose a ${service==='data'?'plan':service==='cable'?'package':'product'} before continuing.`);return false;}if((service==='airtime'||service==='electricity')&&(!Number.isFinite(Number(amount))||Number(amount)<=0)){showToast('error','Enter an amount','Enter a valid amount before continuing.');return false;}}if(step===4&&!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return false;}return true;};
 
   const handleConfirm = async () => {
     if(!supabase)return;
     const value=Number(amount);
     if(!provider||recipient.trim().length<5||!Number.isFinite(value)||value<=0){showToast('error','Incomplete transaction','Select a provider and enter valid recipient and amount details.');return;}
     if(!/^\d{4}$/.test(pin)){showToast('error','PIN required','Enter your 4-digit confirmation PIN.');return;}
-    if(!chosen){showToast('error','Product unavailable','This product is not active in the live IHLink catalogue.');return;}
+    if(!chosen||(service==='data'&&dataNetworkKey(chosen.provider)!==dataNetworkKey(provider))){showToast('error','Product unavailable','This product is not active in the live IHLink catalogue.');return;}
     if(!quote){showToast('error','Price unavailable','Refresh the catalogue and choose a valid amount.');return;}
     const signature=JSON.stringify({product:chosen.id,recipient:recipient.trim(),amount:value,meterType:params.get('meterType')});
     if(requestKey.current.signature!==signature)requestKey.current={signature,key:crypto.randomUUID()};
@@ -165,16 +174,17 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step === 0 && (
               <div>
                 <h3 className="text-lg font-bold text-ink mb-4">Select {service === 'airtime' || service === 'data' ? 'Network' : service === 'electricity' ? 'Provider' : service === 'cable' ? 'Provider' : 'Exam'}</h3>
-                {!providers.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">No provider route is currently available for this service. Availability returns automatically when an enabled provider passes health and balance checks.</div>}
+                {!liveProducts.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">No provider route is currently available for this service. Availability returns automatically when an enabled provider passes health and balance checks.</div>}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {providers.map((name, i) => (
                     
-                    <button onClick={()=>setProvider(name)} key={i} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${provider===name?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
+                    <button type="button" aria-pressed={service==='data'?dataNetworkKey(provider)===dataNetworkKey(name):provider===name} onClick={()=>changeProvider(name)} key={name} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${(service==='data'?dataNetworkKey(provider)===dataNetworkKey(name):provider===name)?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
                       <ServiceLogo name={name} />
                       <span className="text-sm font-semibold text-ink">{name}</span>
                     </button>
                   ))}
                 </div>
+                {typeFilters}
               </div>
             )}
             {step === 1 && (
@@ -189,16 +199,17 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
             {step === 2 && (
               <div>
                 <h3 className="text-lg font-bold text-ink mb-4">{service === 'data' ? 'Select Plan' : service === 'cable' ? 'Select Package' : 'Enter Amount'}</h3>
+                {typeFilters}
                 {service === 'data' || service === 'cable' || service === 'education' ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    {liveProducts.filter(p=>!provider||p.provider===provider).map((p) => (
-                      <button onClick={()=>{setSelection(p.id);setAmount(String(priceFor(p)));}} key={p.id} className={`p-4 rounded-xl border-2 text-left ${selection===p.id?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {visibleProducts.map((p) => (
+                      <button type="button" aria-pressed={selection===p.id} onClick={()=>{setSelection(p.id);setAmount(String(priceFor(p)));setPin('');setChargedAmount(null);}} key={p.id} className={`p-4 rounded-xl border-2 text-left ${selection===p.id?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
                         <p className="text-base font-bold text-ink">{p.name}</p>
-                        <p className="text-xs text-muted">{p.description||p.provider}{p.validity_label?` · ${p.validity_label}`:''}</p>
+                        <p className="text-xs text-muted">{service==='data'?dataPlanTypeLabel(dataPlanType(p)):p.description||p.provider}{p.validity_label?` · ${p.validity_label}`:''}</p>
                         <p className="text-sm font-bold text-emerald-600 mt-1">{naira(priceFor(p))}</p>
                       </button>
                     ))}
-                    {!liveProducts.filter(p=>!provider||p.provider===provider).length&&<p className="col-span-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">No currently routable product is available for this provider. Products return automatically when an enabled provider passes health, balance and routing checks.</p>}
+                    {!visibleProducts.length&&<p className="sm:col-span-2 rounded-xl bg-amber-50 p-4 text-sm text-amber-700">No currently available plan matches this network and data type. Products return automatically when an enabled provider passes health, balance and routing checks.</p>}
                   </div>
                 ) : (
                   <div>
