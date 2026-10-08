@@ -38,7 +38,10 @@ find(heading)
 adb('shell','am','force-stop',app)
 adb('shell','am','start','-W','-n',app+'/.MainActivity')
 find('Your DataSub account' if app.endswith('datasub') else 'Run Your School Smarter')
-assert not any(explore in n.attrib.get('text','') for n in screen().iter('node'))
+root=screen()
+assert root is not None, 'Restart accessibility snapshot missing'
+welcome_heading='Welcome to easier everyday payments' if app.endswith('datasub') else 'Welcome to your school community'
+assert not any(welcome_heading in n.attrib.get('text','') for n in root.iter('node'))
 (out/'restart.png').write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
 assert 'FATAL EXCEPTION' not in adb('logcat','-d','-s','AndroidRuntime:E')
 (out/'RESULT.txt').write_text('PASS: install, launch, welcome at 360/390/412, Explore and restart. API35 emulator; no real-device or signed-production certification.\n')
