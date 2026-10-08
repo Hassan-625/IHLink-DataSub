@@ -1,3 +1,6 @@
+import {NativeAppShell} from '@/components/NativeAppShell';
+import {NativeAppHome} from '@/components/NativeAppHome';
+import {isNativeApp} from '@/lib/nativeAuth';
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ToastProvider } from "@/components/ui/Toast";
@@ -77,7 +80,7 @@ export default function App() {
   return (
     <ToastProvider>
       <BrandIntro>
-        <Routes>
+        <NativeAppShell><Routes>
 
           {/* ==================================================
               DATASUB HOME
@@ -85,12 +88,12 @@ export default function App() {
 
           <Route
             path="/"
-            element={<DataSubHome />}
+            element={isNativeApp() ? <NativeAppHome /> : <DataSubHome />}
           />
 
           <Route
             path="/datasub"
-            element={<DataSubHome />}
+            element={isNativeApp() ? <NativeAppHome /> : <DataSubHome />}
           />
 
           {/* ==================================================
@@ -594,7 +597,7 @@ export default function App() {
             element={<NotFoundPage />}
           />
 
-        </Routes>
+        </Routes></NativeAppShell>
       </BrandIntro>
     </ToastProvider>
   );
