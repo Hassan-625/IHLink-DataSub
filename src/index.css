@@ -256,3 +256,11 @@ html.native-app .native-shell table td {display:block;min-width:0;padding:8px;ov
 html.native-app .native-shell table td[data-label]::before {content:attr(data-label);display:block;font-size:11px;font-weight:700;color:var(--app-muted);margin-bottom:4px;}
 html.native-app .native-shell table input {width:100%;}
 html.native-app .native-shell :is(pre,code) {white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}
+
+/* Keep system-bar backgrounds clear of scrolling content and modal scrims. */
+html.native-app::before, html.native-app::after { content:""; position:fixed; left:0; right:0; background:var(--app-bg); z-index:2147483647; pointer-events:none; }
+html.native-app::before { top:0; height:var(--safe-area-inset-top, env(safe-area-inset-top, 0px)); }
+html.native-app::after { bottom:0; height:var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)); }
+html.native-app .native-help-hero { background:var(--app-card); }
+html.native-app .native-help-hero .text-purple-700 { color:var(--app-accent); }
+html.native-app .native-help-hero .bg-purple-50 { background:var(--app-raised); }
