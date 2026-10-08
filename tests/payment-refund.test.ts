@@ -158,3 +158,9 @@ test('data plan/bypass validation rejection cannot strand a purchase as ambiguou
  assert.equal((await legit.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:123},'TEST')).state,'FAILED');
  }}finally{globalThis.fetch=original;}
 });
+test('CashSub explicit unavailable service without provider debit fails; generic HTTP 503 stays ambiguous',async()=>{
+ const original=globalThis.fetch;
+ try{for(const [body,expected]of [[{status:'fail',message:'MTN GIFTING is currently unavailable',balance_before:'199.00',balance_after:'199.00',api_response:null},'FAILED'],[{status:'fail',message:'Service unavailable'},'UNKNOWN'],[{status:'fail',message:'MTN GIFTING is currently unavailable',balance_before:'199.00',balance_after:'125.00',api_response:null},'UNKNOWN']] as const){
+ globalThis.fetch=async()=>new Response(JSON.stringify(body),{status:503});assert.equal((await cash.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:1},'TEST')).state,expected);
+ }}finally{globalThis.fetch=original;}
+});
