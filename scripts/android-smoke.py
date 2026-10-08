@@ -53,5 +53,10 @@ for block in crash_blocks:
  assert process is not None, 'Unidentified process crash; see android-runtime.txt'
  assert process.group(1)!=app and not process.group(1).startswith(app+':'), 'Application process crashed; see android-runtime.txt'
 assert app in adb('shell','dumpsys','activity','activities'), 'App activity missing after restart'
+root=screen()
+assert root is not None, 'App navigation snapshot missing'
+texts=[n.attrib.get('text','') for n in root.iter('node')]
+assert all(any(label==text for text in texts) for label in ['Home','Account']), 'Bottom navigation missing'
+assert not any('© 2026 IHLink' in text for text in texts), 'Website footer present in app'
 (out/'RESULT.txt').write_text('PASS: install, launch, welcome at 360/390/412, Explore and restart. API35 emulator; no real-device or signed-production certification.\n')
 print((out/'RESULT.txt').read_text())
