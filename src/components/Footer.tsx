@@ -1,3 +1,4 @@
+import {isNativeApp} from '@/lib/nativeAuth';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Link } from 'react-router-dom';
 import { Logo } from './Logo';
@@ -21,6 +22,7 @@ const sections = [
 
 export function Footer({}: FooterProps) {
   const theme = productThemes.datasub;
+  if(isNativeApp())return null;
   return <footer className={`${theme.footerBg} ${theme.footerText} mt-20`}>
     <div className="max-w-[1440px] mx-auto px-6 lg:px-10 py-12">
       <div className="grid grid-cols-2 gap-8 lg:grid-cols-12">
