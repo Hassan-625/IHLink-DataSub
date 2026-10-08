@@ -35,8 +35,8 @@ export function DataSubTransactions() {
   const { showToast } = useToast();
   const navigate=useNavigate();
   useEffect(()=>setPage(1),[search,typeFilter,statusFilter]);
-  const repeat=(item:DataSubTransaction)=>{const type=item.type.toLowerCase();const route=type.includes('cable')?'/datasub/pay-cable':type.includes('education')?'/datasub/buy-education':type.includes('electric')?'/datasub/pay-electricity':type.includes('data')?'/datasub/buy-data':'/datasub/buy-airtime';navigate(`${route}?provider=${encodeURIComponent(item.service)}&recipient=${encodeURIComponent(item.recipient)}`);};
-  const printReceipt=async()=>{if(!selected||selected.status!=='success'){showToast('error','Receipt unavailable','Receipts are issued only for successful transactions.');return;}const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:{reference:selected.ref,transaction_reference:selected.ref,service:selected.type,network:selected.service,provider:selected.service,plan:selected.type,recipient:selected.recipient,phone_number:selected.recipient,amount:naira(selected.amount),status:statusLabel(selected.status),date:formatDateTime(selected.date)}});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','Your receipt could not be opened. Please try again or contact support.');return;}const w=window.open('','_blank','width=900,height=720');if(!w)return;w.opener=null;w.document.write(`<!doctype html><html><head><title>Receipt ${selected.ref}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
+  const repeat=(item:DataSubTransaction)=>{if(item.status==="pending"){showToast("info","Purchase pending","Please wait for this purchase to be confirmed before repeating it.");return;}const type=item.type.toLowerCase();const route=type.includes('cable')?'/datasub/pay-cable':type.includes('education')?'/datasub/buy-education':type.includes('electric')?'/datasub/pay-electricity':type.includes('data')?'/datasub/buy-data':'/datasub/buy-airtime';navigate(`${route}?provider=${encodeURIComponent(item.service)}&recipient=${encodeURIComponent(item.recipient)}`);};
+  const printReceipt=async()=>{if(!selected||selected.status!=='success'){showToast('error','Receipt unavailable','Receipts are issued only for successful transactions.');return;}const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:{reference:selected.ref,transaction_reference:selected.ref,service:selected.type,network:selected.service,provider:selected.service,plan:selected.plan||selected.type,recipient:selected.recipient,phone_number:selected.recipient,amount:naira(selected.amount),status:statusLabel(selected.status),date:formatDateTime(selected.date)}});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','Your receipt could not be opened. Please try again or contact support.');return;}const w=window.open('','_blank','width=900,height=720');if(!w)return;w.opener=null;w.document.write(`<!doctype html><html><head><title>Receipt ${selected.ref}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
   const { transactions, loading, error, refresh, userName } = useDataSubData();
   const filtered = useMemo(() => transactions.filter(t => {
     const query = search.toLowerCase();
@@ -66,7 +66,7 @@ export function DataSubTransactions() {
         </div>
 
         {/* Table */}
-        {isNativeApp()?<div className="grid gap-3">{paged.map(t=><button type="button" key={t.id} className="app-card text-left" onClick={()=>setSelected(t)}><div className="flex items-center justify-between gap-3"><b>{t.type}</b><b>{naira(t.amount)}</b></div><p className="mt-2 break-all text-sm text-muted">{t.recipient}</p><div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-muted">{formatDateTime(t.date)}</span><Badge variant="status" status={t.status}/></div><span className="mt-3 block text-xs font-semibold">View details</span></button>)}</div>:<Table
+        {isNativeApp()?<div className="grid gap-3">{paged.map(t=><button type="button" key={t.id} className="app-card text-left" onClick={()=>setSelected(t)}><div className="flex items-center justify-between gap-3"><b>{t.type}</b><b>{naira(t.amount)}</b></div><p className="mt-2 text-sm">{t.service}{t.plan?` · ${t.plan}`:""}</p><p className="mt-2 break-all text-sm text-muted">{t.recipient}</p><div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-muted">{formatDateTime(t.date)}</span><Badge variant="status" status={t.status}/></div><span className="mt-3 block text-xs font-semibold">View details</span></button>)}</div>:<Table
           headers={[
             { label: 'Reference', align: 'left' },
             { label: 'Type', align: 'left' },
@@ -80,7 +80,7 @@ export function DataSubTransactions() {
           rows={paged.map(t => [
             <span className="font-mono text-xs font-semibold text-ink">{t.ref}</span>,
             <span className="font-semibold text-ink">{t.type}</span>,
-            <ServiceLogo name={t.service} size="sm" showLabel />,
+            <div><ServiceLogo name={t.service} size="sm" showLabel />{t.plan&&<p className="mt-1 text-xs text-muted">{t.plan}</p>}</div>,
             <span className="text-muted">{t.recipient}</span>,
             <span className="font-bold text-ink">{naira(t.amount)}</span>,
             <Badge variant="status" status={t.status} />,
@@ -88,7 +88,7 @@ export function DataSubTransactions() {
             <div className="flex items-center justify-center gap-1">
               <button onClick={() => setSelected(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><Eye className="w-4 h-4" /></button>
               {t.status==="success"&&<button onClick={() => { setSelected(t); setReceiptOpen(true); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted" title="Preview receipt"><Download className="w-4 h-4" /></button>}
-              <button onClick={() => repeat(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><RefreshCw className="w-4 h-4" /></button>
+              {t.status!=="pending"&&<button onClick={() => repeat(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><RefreshCw className="w-4 h-4" /></button>}
             </div>,
           ])}
         />}
@@ -108,7 +108,7 @@ export function DataSubTransactions() {
               <Badge variant="status" status={selected.status} />
             </div>
             <div className="space-y-3 text-sm">
-              {[['Reference', selected.ref], ['Type', selected.type], ['Service', selected.service], ['Recipient', selected.recipient], ['Amount', naira(selected.amount)], ['Date', formatDateTime(selected.date)]].map(([k, v], i) => (
+              {[['Reference', selected.ref], ['Type', selected.type], ['Service', selected.service], ...(selected.plan? [['Plan', selected.plan]]:[]), ['Recipient', selected.recipient], ['Amount', naira(selected.amount)], ['Date', formatDateTime(selected.date)]].map(([k, v], i) => (
                 <div key={i} className="flex justify-between border-b border-border pb-2">
                   <span className="text-muted">{k}</span>
                   <span className="font-semibold text-ink">{v}</span>
@@ -117,7 +117,7 @@ export function DataSubTransactions() {
             </div>
             <div className="flex gap-2">
               {selected.status==="success"&&<Button variant="secondary" fullWidth leftIcon={<Download className="w-4 h-4" />} onClick={() => setReceiptOpen(true)}>Preview Receipt</Button>}
-              <Button fullWidth themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<RefreshCw className="w-4 h-4" />} onClick={() => repeat(selected)}>Repeat</Button>
+              {selected.status!=="pending"&&<Button fullWidth themeClass="bg-emerald-500 hover:bg-emerald-600" leftIcon={<RefreshCw className="w-4 h-4" />} onClick={() => repeat(selected)}>Repeat</Button>}
             </div>
           </div>
         )}
@@ -133,7 +133,7 @@ export function DataSubTransactions() {
               <p className="text-xs text-muted">Transaction Receipt</p>
             </div>
             <div className="space-y-2 text-sm">
-              {[['Reference', selected.ref], ['Type', selected.type], ['Service', selected.service], ['Recipient', selected.recipient], ['Amount', naira(selected.amount)], ['Status', statusLabel(selected.status)], ['Date', formatDateTime(selected.date)]].map(([k, v], i) => (
+              {[['Reference', selected.ref], ['Type', selected.type], ['Service', selected.service], ...(selected.plan? [['Plan', selected.plan]]:[]), ['Recipient', selected.recipient], ['Amount', naira(selected.amount)], ['Status', statusLabel(selected.status)], ['Date', formatDateTime(selected.date)]].map(([k, v], i) => (
                 <div key={i} className="flex justify-between"><span className="text-muted">{k}</span><span className="font-semibold text-ink">{v}</span></div>
               ))}
             </div>

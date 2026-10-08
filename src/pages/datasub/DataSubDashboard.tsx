@@ -99,7 +99,7 @@ export function DataSubDashboard() {
         </div>
       </Card>
 
-      {customerFeatures.length>0&&<Card padding="lg" className="mb-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Managed by IHLink Command Center</p><h2 className="text-lg font-extrabold text-ink">Available DataSub features</h2></div><Badge>{customerFeatures.length} enabled</Badge></div><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{customerFeatures.map((f:any)=><div key={f.feature_key} className="rounded-xl border p-3"><p className="text-xs font-bold uppercase text-muted">{f.module_key}</p><h3 className="font-bold text-ink">{f.title}</h3>{f.description&&<p className="mt-1 text-xs text-muted">{f.description}</p>}{f.cta_link&&<Link to={f.cta_link} className="mt-2 inline-block text-xs font-bold text-emerald-700">{f.cta_label||'Open'} →</Link>}</div>)}</div></Card>}
+      {customerFeatures.length>0&&<Card padding="lg" className="mb-6"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Explore your services</p><h2 className="text-lg font-extrabold text-ink">Available DataSub features</h2></div><Badge>{customerFeatures.length} enabled</Badge></div><div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">{customerFeatures.map((f:any)=><div key={f.feature_key} className="rounded-xl border p-3"><h3 className="font-bold text-ink">{f.title}</h3>{f.description&&<p className="mt-1 text-xs text-muted">{f.description}</p>}{f.cta_link&&<Link to={f.cta_link} className="mt-2 inline-block text-xs font-bold text-emerald-700">{f.cta_label||'Open'} →</Link>}</div>)}</div></Card>}
       {/* Quick Actions */}
       {featureEnabled('live_catalogue')&&<div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         {[
@@ -159,7 +159,7 @@ export function DataSubDashboard() {
                   <ServiceLogo name={t.service} size="sm" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-ink">{t.type} · {t.service}</p>
-                    <p className="text-xs text-muted">{t.recipient}</p>
+                    {t.plan&&<p className="text-xs text-muted">{t.plan}</p>}<p className="text-xs text-muted">{t.recipient}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-bold text-ink">{naira(t.amount)}</p>

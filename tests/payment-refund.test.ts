@@ -141,3 +141,20 @@ test('explicit missing-field validation rejection fails safely; generic forbidde
     }
   } finally { globalThis.fetch = original; }
 });
+test('Legitdataway data/topup requests use the complete documented provider contract', async () => {
+  const original=globalThis.fetch;const captured:any[]=[];
+  try {
+    globalThis.fetch=async(url:any,init:any)=>{if(String(url).endsWith('/user'))return new Response(JSON.stringify({status:'success',AccessToken:'test-only'}));captured.push({url:String(url),body:JSON.parse(init.body)});return new Response(JSON.stringify({status:'success','request-id':'TEST'}));};
+    await legit.purchase({service:'DATA',network:'MTN',recipient:'08000000000',ported:false},{external_plan_id:123},'TEST');
+    await legit.purchase({service:'AIRTIME',network:'AIRTEL',recipient:'08000000000',amount:100,ported:false},{external_plan_id:123},'TEST');
+    assert.ok(captured[0].url.endsWith('/data'));assert.deepEqual(captured[0].body,{network:1,phone:'08000000000',data_plan:123,bypass:false,'request-id':'TEST'});
+    assert.ok(captured[1].url.endsWith('/topup'));assert.deepEqual(captured[1].body,{network:2,phone:'08000000000',amount:100,bypass:false,plan_type:'VTU','request-id':'TEST'});
+  }finally{globalThis.fetch=original;}
+});
+test('data plan/bypass validation rejection cannot strand a purchase as ambiguous',async()=>{
+ const original=globalThis.fetch;
+ try{for(const field of ['data plan','bypass','plan type']){
+ globalThis.fetch=async(url:any)=>new Response(JSON.stringify(String(url).endsWith('/user')?{status:'success',AccessToken:'test-only'}:{status:'fail',message:`The ${field} field is required.`}),{status:String(url).endsWith('/user')?200:403});
+ assert.equal((await legit.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:123},'TEST')).state,'FAILED');
+ }}finally{globalThis.fetch=original;}
+});
