@@ -255,4 +255,4 @@ html.native-app .native-shell table tr {display:grid;min-width:0;border:1px soli
 html.native-app .native-shell table td {display:block;min-width:0;padding:8px;overflow-wrap:anywhere;white-space:normal;}
 html.native-app .native-shell table td[data-label]::before {content:attr(data-label);display:block;font-size:11px;font-weight:700;color:var(--app-muted);margin-bottom:4px;}
 html.native-app .native-shell table input {width:100%;}
-html.native-app .native-workspace :is(pre,code) {white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}
+html.native-app .native-shell :is(pre,code) {white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}

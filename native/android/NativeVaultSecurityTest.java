@@ -36,7 +36,7 @@ public class NativeVaultSecurityTest {
     Result change=new Result("configure",data("pin","654321","currentPin","123456"));vault.configure(change);assertNull(change.await().failure);
     Result lockAgain=new Result("lock",data());vault.lock(lockAgain);lockAgain.await();
     for(int i=0;i<5;i++){Result incorrect=new Result("unlock",data("pin","123456"));vault.unlock(incorrect);assertNotNull(incorrect.await().failure);}
-    Result status=new Result("status",data());vault.status(status);assertFalse(status.await().result.getBool("enabled",true));Result wiped=new Result("getItem",data("key","fixture-session"));vault.getItem(wiped);assertNull(wiped.await().result.getString("value"));
+    Result status=new Result("status",data());vault.status(status);assertFalse(status.await().result.getBool("enabled"));Result wiped=new Result("getItem",data("key","fixture-session"));vault.getItem(wiped);assertNull(wiped.await().result.getString("value"));
    } finally {Result clean=new Result("reset",data());vault.reset(clean);clean.await();}
   }
  }
