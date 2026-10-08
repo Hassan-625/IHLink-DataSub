@@ -264,3 +264,6 @@ html.native-app::after { bottom:0; height:var(--safe-area-inset-bottom, env(safe
 html.native-app .native-help-hero { background:var(--app-card); }
 html.native-app .native-help-hero .text-purple-700 { color:var(--app-accent); }
 html.native-app .native-help-hero .bg-purple-50 { background:var(--app-raised); }
+
+.native-shell.keyboard-open .native-nav { visibility:hidden; pointer-events:none; }
+.native-shell.keyboard-open { padding-bottom:0; }
