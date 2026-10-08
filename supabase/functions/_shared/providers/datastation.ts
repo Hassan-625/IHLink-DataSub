@@ -9,8 +9,12 @@ const discoIds:Record<string,number>={"IKEJA ELECTRIC":1,IKEDC:1,"EKO ELECTRIC":
 
 function api(path:string){return origin().replace(/\/$/,"")+"/"+path.replace(/^\//,"")}
 function site(path:string){return new URL(path,origin().replace(/\/api\/?$/,"/")).toString()}
-function classify(raw:any,httpOk:boolean):"SUCCESS"|"FAILED"|"UNKNOWN"{
-  if(!httpOk)return "UNKNOWN";
+function classify(raw:any,httpOk:boolean,dataPurchase:boolean=false):"SUCCESS"|"FAILED"|"UNKNOWN"{
+  if(!httpOk){
+    const unavailable=Array.isArray(raw?.error)&&raw.error.length===1&&raw.error[0]==="Data not available on this network currently";
+    if(dataPurchase&&raw?._http_status===400&&unavailable&&!referenceOf(raw))return "FAILED";
+    return "UNKNOWN";
+  }
   const value=raw?.status??raw?.Status??raw?.transaction_status??raw?.response_status;
   const s=String(value??"").trim().toLowerCase();
   if(httpOk&&["success","successful","completed","complete","delivered"].includes(s))return "SUCCESS";
@@ -24,7 +28,7 @@ async function request(url:string,init:RequestInit={}):Promise<ProviderResult>{
   try{
     const r=await fetch(url,{...init,headers:{Authorization:`Token ${token()}`,"Content-Type":"application/json",...(init.headers||{})}});
     const parsed=await r.json().catch(()=>({}));const raw={...(parsed&&typeof parsed==='object'?parsed:{}),_http_status:r.status};
-    return {state:classify(raw,r.ok),reference:referenceOf(raw),raw,latency:Date.now()-started};
+    return {state:classify(raw,r.ok,init.method==="POST"&&/\/data\/?$/.test(url)),reference:referenceOf(raw),raw,latency:Date.now()-started};
   }catch(e){return {state:"UNKNOWN",raw:{error:String(e)},latency:Date.now()-started}}
 }
 const call=(path:string,init:RequestInit={})=>request(api(path),init);

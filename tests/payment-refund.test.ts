@@ -164,3 +164,12 @@ test('CashSub explicit unavailable service without provider debit fails; generic
  globalThis.fetch=async()=>new Response(JSON.stringify(body),{status:503});assert.equal((await cash.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:1},'TEST')).state,expected);
  }}finally{globalThis.fetch=original;}
 });
+
+test('DataStation exact unavailable-network validation rejects data purchase, never ambiguous errors or lookups',async()=>{
+ const original=globalThis.fetch;
+ try{for(const [body,http,expected]of [[{error:['Data not available on this network currently']},400,'FAILED'],[{error:['Data not available on this network currently'],ident:'accepted'},400,'UNKNOWN'],[{error:['Data not available on this network currently']},500,'UNKNOWN'],[{error:['Bad gateway']},400,'UNKNOWN']] as const){
+ globalThis.fetch=async()=>new Response(JSON.stringify(body),{status:http});
+ assert.equal((await ds.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:1},'TEST')).state,expected);
+ assert.equal((await ds.reconcile('DATA','receipt')).state,'UNKNOWN');
+ }}finally{globalThis.fetch=original;}
+});
