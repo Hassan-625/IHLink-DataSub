@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 
-import { customerTransaction, customerService } from "@/lib/dataSubCustomerTransaction";
+import { customerTransaction, customerService, type DataSubTransaction } from "@/lib/dataSubCustomerTransaction";
 export type { DataSubTransaction } from "@/lib/dataSubCustomerTransaction";
 export type DataSubBeneficiary = { id: string; name: string; type: string; provider: string; recipient: string };
 
