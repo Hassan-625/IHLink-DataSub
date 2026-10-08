@@ -1,3 +1,4 @@
+import {androidVault,nativeAuthStorage} from '@/lib/nativeVault';
 import {isNativeApp,nativeOAuthEnabled} from '@/lib/nativeAuth';
 import { createClient } from "@supabase/supabase-js";
 
@@ -15,8 +16,9 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl!, supabasePublishableKey!, {
       auth: {
         persistSession: true,
+        ...(androidVault?{storage:nativeAuthStorage}:{}),
         flowType: isNativeApp()&&nativeOAuthEnabled?'pkce':'implicit',
-        autoRefreshToken: true,
+        autoRefreshToken: !androidVault,
         detectSessionInUrl: true,
       },
     })

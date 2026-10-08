@@ -231,7 +231,7 @@ html.native-app :is(.text-amber-700,.text-amber-800) { color:#ffda90 !important;
 html.native-app [aria-pressed="true"] { border-color:var(--app-accent) !important; }
 html.native-app .purchase-plans { grid-template-columns:repeat(2,minmax(0,1fr)); }
 html.native-app .purchase-networks { grid-template-columns:repeat(auto-fit,minmax(76px,1fr)); }
-html.native-app .purchase-types { flex-wrap:nowrap; overflow-x:auto; padding-bottom:8px; }
+html.native-app .purchase-types { flex-wrap:wrap; gap:8px; padding-bottom:8px; }
 html.native-app .purchase-types button { flex-shrink:0; }
 html.native-app :focus-visible { outline:3px solid var(--app-accent); outline-offset:3px; }
 @media (prefers-reduced-motion:reduce) { html.native-app *,html.native-app *::before,html.native-app *::after { animation:none !important; transition:none !important; } }
@@ -240,3 +240,19 @@ html.native-app[data-appearance="light"] .bg-rose-50 {background:#fff1f2 !import
 html.native-app[data-appearance="light"] :is(.text-rose-700,.text-rose-800,.text-rose-900) {color:#be123c !important;}
 html.native-app[data-appearance="light"] .bg-amber-50 {background:#fffbeb !important;}
 html.native-app[data-appearance="light"] :is(.text-amber-700,.text-amber-800) {color:#92400e !important;}
+
+html.native-app .native-workspace,html.native-app .app-page { min-width:0; width:100%; overflow-wrap:anywhere; }
+html.native-app .native-workspace :is(input,select,textarea) { max-width:100%; min-width:0; }
+html.native-app .app-service {min-width:0;min-height:102px;gap:9px;padding:12px 4px;font-size:11px;line-height:1.3;border-radius:16px;}
+.app-service-icon {display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:var(--app-raised);}
+.app-service-color-0 svg {color:#79c9ff;} .app-service-color-1 svg {color:#b6a1ff;} .app-service-color-2 svg {color:#6ee7b7;} .app-service-color-3 svg {color:#fbbf24;}
+html.native-app[data-appearance="light"] .app-service-color-0 svg {color:#075ba8;} html.native-app[data-appearance="light"] .app-service-color-1 svg {color:#6d28d9;} html.native-app[data-appearance="light"] .app-service-color-2 svg {color:#047857;} html.native-app[data-appearance="light"] .app-service-color-3 svg {color:#b45309;}
+
+html.native-app .native-shell table {display:block;min-width:0!important;width:100%;}
+html.native-app .native-shell table thead {display:none;}
+html.native-app .native-shell table tbody {display:grid;gap:12px;padding:12px;}
+html.native-app .native-shell table tr {display:grid;min-width:0;border:1px solid var(--app-border);border-radius:14px;padding:8px;}
+html.native-app .native-shell table td {display:block;min-width:0;padding:8px;overflow-wrap:anywhere;white-space:normal;}
+html.native-app .native-shell table td[data-label]::before {content:attr(data-label);display:block;font-size:11px;font-weight:700;color:var(--app-muted);margin-bottom:4px;}
+html.native-app .native-shell table input {width:100%;}
+html.native-app .native-workspace :is(pre,code) {white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}

@@ -1,4 +1,4 @@
-import {customerAuthError} from '@/lib/customerAuthError';
+import {androidVault,NativeVault} from '@/lib/nativeVault';
 import {isNativeApp,nativeAuthRedirect,openNativeOAuth,publicAppOrigin,nativeOAuthEnabled} from '@/lib/nativeAuth';
 import {
   createContext,
@@ -126,10 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const timeoutMs = profile.role === "super_admin" || profile.role === "platform_admin" || profile.role === "support" || profile.role === "finance"
       ? 15 * 60 * 1000
       : 30 * 60 * 1000;
-    let timer = window.setTimeout(() => void client.auth.signOut({ scope: "local" }), timeoutMs);
+    const expire=()=>{if(androidVault&&profile.role==='customer')void NativeVault.status().then(status=>{if(status.enabled)window.dispatchEvent(new Event('ihlink:lock-app'));else void client.auth.signOut({scope:'local'});});else void client.auth.signOut({scope:'local'});};
+    let timer = window.setTimeout(expire,timeoutMs);
     const reset = () => {
       window.clearTimeout(timer);
-      timer = window.setTimeout(() => void client.auth.signOut({ scope: "local" }), timeoutMs);
+      timer = window.setTimeout(expire,timeoutMs);
     };
     const events = ["pointerdown", "keydown", "scroll", "touchstart"];
     events.forEach((event) => window.addEventListener(event, reset, { passive: true }));
@@ -150,16 +151,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       configured: isSupabaseConfigured,
       async signIn(email, password) {
         if (!supabase)
-          return "Sign-in is temporarily unavailable. Please try again shortly.";
+          return "Authentication is awaiting the Supabase connection.";
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        return error ? customerAuthError(error) : null;
+        return error?.message ?? null;
       },
       async signUp({ email, password, firstName, middleName, lastName, phone, sex, newsletterOptIn, service }) {
         if (!supabase)
-          return { error: "Sign-in is temporarily unavailable. Please try again shortly.", needsVerification: false, existingAccount: false };
+          return { error: "Authentication is awaiting the Supabase connection.", needsVerification: false, existingAccount: false };
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -176,14 +177,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           },
         });
-        if (error) return { error: customerAuthError(error), needsVerification: false, existingAccount: false };
+        if (error) return { error: error.message, needsVerification: false, existingAccount: false };
         const identities = data.user?.identities;
         const existingAccount = Array.isArray(identities) && identities.length === 0;
         return { error: null, needsVerification: !data.session && !existingAccount, existingAccount };
       },
       async signInWithGoogle() {
         if (!supabase)
-          return "Google sign-in is unavailable. Use your email and password.";
+          return "Google sign-in is awaiting the Supabase connection.";
         const next = sessionStorage.getItem("ih_auth_next");
         const callback = new URL("/signin", window.location.origin);
         if (next && next.startsWith("/") && !next.startsWith("//")) callback.searchParams.set("next", next);
@@ -193,11 +194,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           options: { redirectTo: isNativeApp()?nativeAuthRedirect:callback.toString(), skipBrowserRedirect:isNativeApp() },
         });
         if(!error&&isNativeApp()&&data.url){try{await openNativeOAuth(data.url);}catch{return 'Could not open secure Google sign-in. Use email and password.';}}
-        return error ? customerAuthError(error) : null;
+        return error?.message ?? null;
       },
       async signOut() {
         if (supabase) {
           await supabase.auth.signOut({ scope: "local" });
+          if(androidVault)await NativeVault.reset();
           setSession(null);
           setProfile(null);
           setAdminAccess([]);
@@ -208,11 +210,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       async resetPassword(email) {
         if (!supabase)
-          return "Password recovery is temporarily unavailable. Please try again shortly.";
+          return "Password recovery is awaiting the Supabase connection.";
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: isNativeApp()&&nativeOAuthEnabled?nativeAuthRedirect+'?flow=recovery':`${isNativeApp()?publicAppOrigin:window.location.origin}/auth/update-password`,
         });
-        return error ? customerAuthError(error) : null;
+        return error?.message ?? null;
       },
     }),
     [adminAccess, serviceAccess, loading, profile, session],

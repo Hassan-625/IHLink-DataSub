@@ -1,3 +1,5 @@
+import {DataSubReferrals} from '@/pages/datasub/DataSubReferrals';
+import {DataSubTransfer} from '@/pages/datasub/DataSubTransfer';
 import {NativeAppShell} from '@/components/NativeAppShell';
 import {NativeAppHome} from '@/components/NativeAppHome';
 import {isNativeApp} from '@/lib/nativeAuth';
@@ -86,6 +88,8 @@ export default function App() {
               DATASUB HOME
           ================================================== */}
 
+          <Route path="/datasub/referrals" element={<ProtectedRoute product="datasub" requireServiceAccess><DataSubReferrals/></ProtectedRoute>}/>
+          <Route path="/datasub/transfer" element={<ProtectedRoute product="datasub" requireServiceAccess><DataSubTransfer/></ProtectedRoute>}/>
           <Route
             path="/"
             element={isNativeApp() ? <NativeAppHome /> : <DataSubHome />}

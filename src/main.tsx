@@ -1,3 +1,5 @@
+import {ReferralCapture} from '@/components/ReferralCapture';
+import {NativeSessionGate} from '@/components/NativeSessionGate';
 import {NativeMobileShell} from '@/components/NativeMobileShell';
 import{AccountClosureControl}from'@/components/AccountClosureControl';
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from "react";
@@ -25,11 +27,9 @@ class StartupErrorBoundary extends Component<{ children: ReactNode }, { error: E
         <main style={{ minHeight: "100vh", padding: "32px", fontFamily: "system-ui, sans-serif", background: "#fff", color: "#071A3D" }}>
           <h1 style={{ fontSize: "24px", fontWeight: 800 }}>IHLink could not start</h1>
           <p style={{ marginTop: "12px", maxWidth: "720px" }}>
-            The application encountered a browser-side startup error. This diagnostic is temporary and prevents a silent white screen.
+            We could not open this page. Please reopen the app or refresh your browser and try again.
           </p>
-          <pre style={{ marginTop: "20px", padding: "16px", overflow: "auto", whiteSpace: "pre-wrap", background: "#f1f5f9", borderRadius: "12px" }}>
-            {this.state.error.message}
-          </pre>
+          <button type="button" onClick={()=>window.location.reload()} style={{marginTop:20,padding:12,borderRadius:12}}>Try again</button>
         </main>
       );
     }
@@ -51,9 +51,9 @@ createRoot(root).render(
   <StrictMode>
     <StartupErrorBoundary>
       <BrowserRouter>
-        <AuthProvider>
-          <NativeMobileShell><App/><AccountClosureControl/></NativeMobileShell>
-        </AuthProvider>
+        <NativeSessionGate><AuthProvider>
+          <NativeMobileShell><ReferralCapture/><App/><AccountClosureControl/></NativeMobileShell>
+        </AuthProvider></NativeSessionGate>
       </BrowserRouter>
     </StartupErrorBoundary>
   </StrictMode>,

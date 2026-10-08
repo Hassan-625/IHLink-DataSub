@@ -1,3 +1,4 @@
+import {isNativeApp} from '@/lib/nativeAuth';
 import { isValidElement, useMemo, useState, type ReactNode } from 'react';
 import { Search } from 'lucide-react';
 
@@ -30,7 +31,7 @@ export function Table({ headers, rows, className = '', searchable = true, search
   return (
     <div className={`w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm ${className}`}>
       {searchable&&<div className="relative m-4 max-w-md"><Search className="absolute left-3 top-3 h-4 w-4 text-muted"/><input type="search" aria-label={searchPlaceholder} value={query} onChange={e=>setQuery(e.target.value)} placeholder={searchPlaceholder} className="w-full rounded-xl border border-border bg-white py-2.5 pl-10 pr-3 text-sm shadow-sm outline-none transition focus:border-royal-500 focus:ring-4 focus:ring-royal-500/10"/></div>}
-      <div className="max-h-[70vh] overflow-auto">
+      {isNativeApp()?<div className="grid gap-3 p-3">{visibleRows.map((row,index)=><article key={index} className="rounded-xl border p-3"><dl className="grid gap-3">{row.map((cell,i)=><div key={i} className="min-w-0"><dt className="text-xs font-semibold text-muted">{headers[i]?.label}</dt><dd className="mt-1 min-w-0 break-words text-sm">{cell}</dd></div>)}</dl></article>)}{!visibleRows.length&&<p className="p-5 text-center text-sm text-muted">{query.trim()?'No matching records.':'No records yet.'}</p>}</div>:<div className="max-h-[70vh] overflow-auto">
       <table className="w-full">
         <thead className="sticky top-0 z-10 bg-white">
           <tr className="border-b border-border">
@@ -65,7 +66,7 @@ export function Table({ headers, rows, className = '', searchable = true, search
           {!visibleRows.length && <tr><td colSpan={headers.length} className="px-4 py-12 text-center text-sm font-medium text-muted">{query.trim() ? 'No matching records.' : 'No records yet.'}</td></tr>}
         </tbody>
       </table>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -84,11 +85,11 @@ export function Pagination({ current, total, onChange }: PaginationProps) {
   for (let i = start; i <= end; i++) pageNumbers.push(i);
 
   return (
-    <div className="flex items-center justify-between gap-4 mt-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
       <p className="text-xs text-muted">
         Page {current} of {total}
       </p>
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         <button
           onClick={() => onChange?.(Math.max(1, current - 1))}
           disabled={current === 1}

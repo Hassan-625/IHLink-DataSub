@@ -1,0 +1,4 @@
+import {Link} from 'react-router-dom';
+import {ShieldCheck,History,LifeBuoy,Bell,Heart,Users,ChevronRight} from 'lucide-react';
+const cards=[{label:'Transaction history',to:'/datasub/transactions',icon:History},{label:'App access & security',to:'/datasub/security',icon:ShieldCheck},{label:'Saved people & favourites',to:'/datasub/customer-tools',icon:Heart},{label:'Refer & earn',to:'/datasub/referrals',icon:Users},{label:'Notifications',to:'/datasub/notifications',icon:Bell},{label:'Help & support',to:'/datasub/support-centre',icon:LifeBuoy}];
+export function NativeAccountCards(){return <nav aria-label="Account tools" className="mb-5 grid gap-3">{cards.map(({label,to,icon:Icon})=><Link key={to} to={to} className="app-card flex min-h-14 items-center gap-3"><span className="app-service-icon"><Icon size={22}/></span><span className="min-w-0 flex-1 text-sm font-semibold">{label}</span><ChevronRight size={18}/></Link>)}</nav>;}
