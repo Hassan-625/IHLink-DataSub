@@ -61,7 +61,10 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          script: python scripts/android-smoke.py
+          script: |
+            android/gradlew --no-daemon -p android connectedDebugAndroidTest
+            python scripts/android-smoke.py
+            cp -r android/app/build/reports/androidTests/connected android-delivery/vault-checks
       - uses: actions/upload-artifact@v4
         if: always()
         with:
