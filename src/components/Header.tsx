@@ -1,3 +1,4 @@
+import {isNativeApp} from '@/lib/nativeAuth';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ChevronDown, Menu, X } from 'lucide-react';
@@ -46,6 +47,7 @@ export function Header({ showAnnouncement = true, announcementText }: HeaderProp
   const [mobileOpen, setMobileOpen] = useState(false);
   const isActive = (href: string) => location.pathname === href || location.pathname.startsWith(href + '/');
 
+  if(isNativeApp())return null;
   return <>
     {showAnnouncement && <div className={`${theme.announcementBg} ${theme.announcementText} text-xs font-medium px-4 py-2 text-center`}>
       {announcementText || 'IHLink DataSub — Smart digital services, connected'}
