@@ -36,3 +36,34 @@ let backupManifest=readFileSync(manifest,'utf8');if(!backupManifest.includes('an
 const vaultTestRoot='android/app/src/androidTest/java/com/ihlink/datasub';mkdirSync(vaultTestRoot,{recursive:true});copyFileSync('native/android/NativeVaultSecurityTest.java',`${vaultTestRoot}/NativeVaultSecurityTest.java`);
 // Capacitor's generated context test retains its template package unless corrected.
 const templateContextTest='android/app/src/androidTest/java/com/getcapacitor/myapp/ExampleInstrumentedTest.java';if(existsSync(templateContextTest))writeFileSync(templateContextTest,readFileSync(templateContextTest,'utf8').replaceAll('com.getcapacitor.app',config.appId));
+
+// Match the native inset background to the selected app appearance on old and new WebViews.
+const systemRoot=`android/app/src/main/java/${config.appId.replaceAll('.', '/')}`;
+mkdirSync(systemRoot,{recursive:true});
+writeFileSync(`${systemRoot}/NativeSystemThemePlugin.java`,`package ${config.appId};
+import android.graphics.Color;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+@CapacitorPlugin(name="NativeSystemTheme")
+public class NativeSystemThemePlugin extends Plugin {
+ @PluginMethod public void apply(PluginCall call) {
+  boolean light=Boolean.TRUE.equals(call.getBoolean("light", false));
+  getActivity().runOnUiThread(()->{getActivity().getWindow().getDecorView().setBackgroundColor(Color.parseColor(light ? "#f1f5f9" : "#10151d"));call.resolve();});
+ }
+}
+`);
+const activityPath=`${systemRoot}/MainActivity.java`;
+let activity=readFileSync(activityPath,'utf8');
+if(activity.includes('registerPlugin(NativeVaultPlugin.class);')) activity=activity.replace('registerPlugin(NativeVaultPlugin.class);','registerPlugin(NativeVaultPlugin.class);registerPlugin(NativeSystemThemePlugin.class);');
+else activity=`package ${config.appId};
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+public class MainActivity extends BridgeActivity { @Override public void onCreate(Bundle state){registerPlugin(NativeSystemThemePlugin.class);super.onCreate(state);} }
+`;
+writeFileSync(activityPath,activity);
+const stylesPath=`${res}/values/styles.xml`;
+let styles=readFileSync(stylesPath,'utf8');
+styles=styles.replace(/(<style name="AppTheme.NoActionBar"[^>]*>)/,'$1\n        <item name="android:windowBackground">#10151d</item>');
+writeFileSync(stylesPath,styles);
