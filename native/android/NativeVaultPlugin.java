@@ -68,16 +68,17 @@ public class NativeVaultPlugin extends Plugin {
  private void reset(){clearMemory();prefs.edit().clear().commit();deleteBiometricKey();}
  @PluginMethod public void reset(PluginCall call){reset();call.resolve();}
  @PluginMethod public void lock(PluginCall call){clearMemory();call.resolve();}
- @Override protected void handleOnPause(){if(!promptActive)clearMemory();}
+ @Override protected void handleOnPause(){clearMemory();}
  @PluginMethod public void disableBiometric(PluginCall call){prefs.edit().remove("biometric").commit();deleteBiometricKey();call.resolve();}
  @PluginMethod public void biometric(PluginCall call){getActivity().runOnUiThread(()->{try{
   boolean enabling=Boolean.TRUE.equals(call.getBoolean("enable",false));if(!enabled()||!biometricAvailable()||(enabling&&unlockedKey==null))throw new Exception();
   Cipher cipher=Cipher.getInstance("AES/GCM/NoPadding");
   if(enabling)cipher.init(Cipher.ENCRYPT_MODE,deviceKey(BIO,true));else{String saved=prefs.getString("biometric","");String[] parts=saved.split(":",2);cipher.init(Cipher.DECRYPT_MODE,deviceKey(BIO,true),new GCMParameterSpec(128,un64(parts[0])));}
+  final byte[] enrollingKey=enabling?unlockedKey.clone():null;
   promptActive=true;
   BiometricPrompt prompt=new BiometricPrompt(getActivity(),ContextCompat.getMainExecutor(getContext()),new BiometricPrompt.AuthenticationCallback(){
-   @Override public void onAuthenticationError(int code,CharSequence message){promptActive=false;call.reject("Fingerprint authentication was cancelled or unavailable");}
-   @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){promptActive=false;try{Cipher verified=result.getCryptoObject().getCipher();if(enabling){String saved=b64(verified.getIV())+":"+b64(verified.doFinal(unlockedKey));prefs.edit().putString("biometric",saved).commit();}else{String saved=prefs.getString("biometric","");byte[] key=verified.doFinal(un64(saved.split(":",2)[1]));JSONObject data=unlockWithKey(key);clearMemory();unlockedKey=key;values=data;prefs.edit().putInt("failures",0).commit();}call.resolve();}catch(Exception e){call.reject("Use your app passcode to continue");}}
+   @Override public void onAuthenticationError(int code,CharSequence message){promptActive=false;if(enrollingKey!=null)Arrays.fill(enrollingKey,(byte)0);call.reject("Fingerprint authentication was cancelled or unavailable");}
+   @Override public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result){promptActive=false;try{Cipher verified=result.getCryptoObject().getCipher();if(enabling){String saved=b64(verified.getIV())+":"+b64(verified.doFinal(enrollingKey));prefs.edit().putString("biometric",saved).commit();if(unlockedKey==null){values=unlockWithKey(enrollingKey);unlockedKey=enrollingKey.clone();}}else{String saved=prefs.getString("biometric","");byte[] key=verified.doFinal(un64(saved.split(":",2)[1]));JSONObject data=unlockWithKey(key);clearMemory();unlockedKey=key;values=data;prefs.edit().putInt("failures",0).commit();}call.resolve();}catch(Exception e){call.reject("Use your app passcode to continue");}finally{if(enrollingKey!=null)Arrays.fill(enrollingKey,(byte)0);}}
   });
   BiometricPrompt.PromptInfo info=new BiometricPrompt.PromptInfo.Builder().setTitle(enabling?"Enable IHLink fingerprint access":"Unlock IHLink DataSub").setSubtitle("Confirm your identity on this device").setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_STRONG).setNegativeButtonText("Use passcode").build();prompt.authenticate(info,new BiometricPrompt.CryptoObject(cipher));
  }catch(Exception e){promptActive=false;call.reject("Fingerprint unavailable. Use your app passcode");}});}
