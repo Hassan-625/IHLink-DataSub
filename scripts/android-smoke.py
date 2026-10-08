@@ -47,7 +47,11 @@ assert not any(welcome_heading in n.attrib.get('text','') for n in root.iter('no
 runtime=adb('logcat','-d','-s','AndroidRuntime:E')
 (out/'android-runtime.txt').write_text(runtime)
 crash_blocks=re.split(r'(?=^.*FATAL EXCEPTION)',runtime,flags=re.MULTILINE)
-assert not any('FATAL EXCEPTION' in block and re.search(r'Process:\\s*'+re.escape(app)+r'(?:[:,\\s]|$)',block) for block in crash_blocks), 'DataSub/SchoolPro process crashed; see android-runtime.txt'
+for block in crash_blocks:
+ if 'FATAL EXCEPTION' not in block:continue
+ process=re.search(r'Process:\s*([^,\s]+)',block)
+ assert process is not None, 'Unidentified process crash; see android-runtime.txt'
+ assert process.group(1)!=app and not process.group(1).startswith(app+':'), 'Application process crashed; see android-runtime.txt'
 assert app in adb('shell','dumpsys','activity','activities'), 'App activity missing after restart'
 (out/'RESULT.txt').write_text('PASS: install, launch, welcome at 360/390/412, Explore and restart. API35 emulator; no real-device or signed-production certification.\n')
 print((out/'RESULT.txt').read_text())
