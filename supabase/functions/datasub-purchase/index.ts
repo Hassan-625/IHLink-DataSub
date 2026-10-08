@@ -43,6 +43,12 @@ Deno.serve(async req=>{
   // Exam catalogue prices and upstream plan IDs represent one PIN. Do not let
   // a client request multiple PINs while the wallet reserves a single price.
   const service=serviceOf(p.service_type);
+  let recipient=String(body.recipient||"").trim();
+  if(["DATA","AIRTIME"].includes(service)){
+    recipient=recipient.replace(/[\s()-]/g,"").replace(/^(?:\+234|00234|234)/,"0");
+    if(!/^0[789]\d{9}$/.test(recipient))return J({error:"Enter a valid Nigerian phone number."},400);
+  }
+
   if(service==="EXAM"&&body.quantity!==undefined&&Number(body.quantity)!==1)
     return J({error:"Purchase one exam PIN per transaction"},400);
 
@@ -81,7 +87,7 @@ Deno.serve(async req=>{
   const reference="IHL-"+crypto.randomUUID();
   const{data:tx,error:te}=await admin.from("datasub_transactions").insert({
     user_id:user.id,reference,service_type:transactionService,provider:"routing",
-    recipient:String(body.recipient||""),amount:sell,product_id:null,catalog_offering_id:p.id,selling_price:sell,status:"pending",routing_state:"ROUTING",
+    recipient,amount:sell,product_id:null,catalog_offering_id:p.id,selling_price:sell,status:"pending",routing_state:"ROUTING",
     metadata:{client_idempotency_key:clientKey,customer_tier:tier,service_amount:serviceAmount,service_fee:fee,cost_basis:amountBased?"face_value_or_configured_provider_rate":"catalogue",input:{network,service,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported}}
   }).select().single();
   if(te)return J({error:"Transaction creation failed"},500);
@@ -97,7 +103,7 @@ Deno.serve(async req=>{
     if(!adapter)continue;
     const attemptKey=`${reference}:${m.provider.code}`;
     await admin.from("datasub_routing_events").insert({transaction_id:tx.id,provider_id:m.provider_id,event_type:i?"FALLBACK_SELECTED":"ROUTE_SELECTED",reason:i?"previous eligible route explicitly failed":"lowest healthy profitable route",details:{provider_cost:m.provider_cost}});
-    const result=await adapter.purchase({service,network,recipient:body.recipient,amount:serviceAmount,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported},m,attemptKey);
+    const result=await adapter.purchase({service,network,recipient,amount:serviceAmount,meter_type:body.meter_type,quantity:service==="EXAM"?1:body.quantity,ported:body.ported},m,attemptKey);
     const safeRaw=JSON.parse(JSON.stringify(result.raw||{},(k,v)=>/token|authorization|password|secret|key/i.test(k)?"[REDACTED]":v));
     await admin.from("datasub_provider_attempts").insert({transaction_id:tx.id,provider_id:m.provider_id,request_key:attemptKey,provider_reference:result.reference,provider_cost:m.provider_cost,response_status:result.state,latency_ms:result.latency,safe_response:safeRaw,is_ambiguous:result.state==="UNKNOWN"});
     if(result.state==="SUCCESS"){

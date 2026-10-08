@@ -117,3 +117,27 @@ test('provider HTTP 500 purchase response stays ambiguous instead of enabling fa
     for (const adapter of [cash, ds, legit]) assert.equal((await adapter.purchase({ service: 'DATA', network: 'MTN', recipient: 'TEST' }, { external_plan_id: 1 }, 'TEST')).state, 'UNKNOWN');
   } finally { globalThis.fetch = original; }
 });
+test('Legitdataway sends the required phone field for data and airtime', async () => {
+  const original = globalThis.fetch;
+  const payloads: any[] = [];
+  try {
+    globalThis.fetch = async (url: any, init: any) => {
+      if (String(url).endsWith('/user')) return new Response(JSON.stringify({ status: 'success', AccessToken: 'test-only' }));
+      const body = JSON.parse(init.body); payloads.push(body);
+      return new Response(JSON.stringify(body.phone ? { status: 'success', ident: 'receipt' } : { status: 'fail', message: 'The phone field is required.' }), { status: body.phone ? 200 : 403 });
+    };
+    for (const service of ['DATA', 'AIRTIME']) assert.equal((await legit.purchase({ service, network: 'MTN', recipient: '08000000000', amount: 50 }, { external_plan_id: 12 }, 'TEST')).state, 'SUCCESS');
+    assert.equal(payloads.length, 2);
+    for (const body of payloads) { assert.equal(body.phone, '08000000000'); assert.equal(body['request-id'], 'TEST'); assert.equal(body.mobile_number, undefined); }
+  } finally { globalThis.fetch = original; }
+});
+test('explicit missing-field validation rejection fails safely; generic forbidden responses stay ambiguous', async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const [message, expected] of [['The phone field is required.', 'FAILED'], ['Forbidden', 'UNKNOWN']] as const) {
+      globalThis.fetch = async (url: any) => new Response(JSON.stringify(String(url).endsWith('/user') ? { status: 'success', AccessToken: 'test-only' } : { status: 'fail', message }), { status: String(url).endsWith('/user') ? 200 : 403 });
+      assert.equal((await legit.purchase({ service: 'DATA', network: 'MTN', recipient: '08000000000' }, { external_plan_id: 12 }, 'TEST')).state, expected);
+      assert.equal((await legit.reconcile('DATA', 'receipt')).state, 'UNKNOWN');
+    }
+  } finally { globalThis.fetch = original; }
+});
