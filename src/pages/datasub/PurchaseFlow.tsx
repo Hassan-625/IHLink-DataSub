@@ -56,9 +56,9 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const [processing,setProcessing]=useState(false);const[hasTransactionPin,setHasTransactionPin]=useState<boolean|null>(null);
   const [liveProducts,setLiveProducts]=useState<LiveProduct[]>([]);
   const [productsLoading,setProductsLoading]=useState(true);
-  const providers=service==='data' ? Array.from(new Map([...networks.map(n=>n.name),...liveProducts.map(p=>p.provider)].map(name=>[dataNetworkKey(name),name])).values()) : Array.from(new Set(liveProducts.map(p=>p.provider)));
+  const providers=Array.from(new Set(liveProducts.map(p=>p.provider)));
   const networkProducts=liveProducts.filter(p=>service==='data'?dataNetworkKey(p.provider)===dataNetworkKey(provider):p.provider===provider);
-  const typeKeys=Array.from(new Set(['all','sme','corporate_gifting','gifting',...networkProducts.map(dataPlanType).filter(Boolean)]));
+  const typeKeys=Array.from(new Set(['all',...networkProducts.map(dataPlanType).filter(Boolean)]));
   const visibleProducts=service==='data'?networkProducts.filter(p=>matchesPlanCategory(p,dataType)):networkProducts;
   function changeProvider(name:string){setProvider(name);setDataType('all');setSelection('');setAmount('');setPin('');setChargedAmount(null);}
   function changeDataType(key:string){setDataType(key);setSelection('');setAmount('');setPin('');setChargedAmount(null);}

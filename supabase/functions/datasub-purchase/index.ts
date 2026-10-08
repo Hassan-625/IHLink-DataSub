@@ -78,8 +78,11 @@ Deno.serve(async req=>{
     .map((m:any)=>({...m,provider_cost:routeCost(serviceAmount,amountBased,m),provider:Array.isArray(m.provider)?m.provider[0]:m.provider,health:hm.get(m.provider_id)}))
     .filter((m:any)=>m.active===true&&m.provider?.is_active&&["HEALTHY","DEGRADED"].includes(m.health?.state||m.provider.state))
     .sort((a:any,b:any)=>Number(a.provider_cost)-Number(b.provider_cost)||Number(b.health?.success_rate_15m||0)-Number(a.health?.success_rate_15m||0)||Number(a.health?.average_latency_ms||999999)-Number(b.health?.average_latency_ms||999999));
+  const{data:availability,error:availabilityError}=await admin.from("datasub_network_availability").select("provider_id,available").eq("service_type",service).eq("network",String(p.network||"").toUpperCase());
+  if(availabilityError)return J({error:"Services could not be checked. Please try again."},503);
+  const blockedProviders=new Set((availability||[]).filter((a:any)=>!a.available).map((a:any)=>a.provider_id));
   const maxRouteCost=Number(p.base_provider_cost)+tolerance;
-  const eligible=candidates.filter((m:any)=>Number(m.provider_cost)<=sell&&(amountBased||Number(m.provider_cost)<=maxRouteCost));
+  const eligible=candidates.filter((m:any)=>!blockedProviders.has(m.provider_id)&&Number(m.provider_cost)<=sell&&(amountBased||Number(m.provider_cost)<=maxRouteCost));
   if(!eligible.length)return J({error:"This service is temporarily unavailable. Please try again later."},503);
 
   const transactionService=({DATA:"data",CABLE:"cable_tv",ELECTRICITY:"electricity",EXAM:"education",AIRTIME:"airtime"} as Record<string,string>)[service]||String(p.service_type||"data").toLowerCase();
