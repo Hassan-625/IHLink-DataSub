@@ -1,3 +1,4 @@
+import { verifiedReconciliation } from "./reconciliation.ts";
 export type ProviderResult={state:"SUCCESS"|"FAILED"|"UNKNOWN";reference?:string;raw:Record<string,unknown>;latency:number};
 
 const origin=()=>Deno.env.get("DATASTATION_API_BASE_URL")||"https://datastationapi.com/api";
@@ -9,6 +10,7 @@ const discoIds:Record<string,number>={"IKEJA ELECTRIC":1,IKEDC:1,"EKO ELECTRIC":
 function api(path:string){return origin().replace(/\/$/,"")+"/"+path.replace(/^\//,"")}
 function site(path:string){return new URL(path,origin().replace(/\/api\/?$/,"/")).toString()}
 function classify(raw:any,httpOk:boolean):"SUCCESS"|"FAILED"|"UNKNOWN"{
+  if(!httpOk)return "UNKNOWN";
   const value=raw?.status??raw?.Status??raw?.transaction_status??raw?.response_status;
   const s=String(value??"").trim().toLowerCase();
   if(httpOk&&["success","successful","completed","complete","delivered"].includes(s))return "SUCCESS";
@@ -45,7 +47,7 @@ export async function purchase(input:any,mapping:any,key:string){
 export async function reconcile(service:string,ref:string){
   const svc=String(service||"").toUpperCase();
   const paths:Record<string,string>={DATA:`/data/${encodeURIComponent(ref)}`,AIRTIME:`/topup/${encodeURIComponent(ref)}`,CABLE:`/cablesub/${encodeURIComponent(ref)}`,ELECTRICITY:`/billpayment/${encodeURIComponent(ref)}`};
-  return paths[svc]?call(paths[svc]):Promise.resolve({state:"UNKNOWN",raw:{configuration:`No verified DataStation reconciliation path for ${svc}`},latency:0} as ProviderResult);
+  return paths[svc]?verifiedReconciliation(await call(paths[svc])):Promise.resolve({state:"UNKNOWN",raw:{configuration:`No verified DataStation reconciliation path for ${svc}`},latency:0} as ProviderResult);
 }
 export async function validateIuc(iuc:string,cable:string){const q=new URLSearchParams({smart_card_number:iuc,cablename:String(cableIds[cable.toUpperCase()]??cable)});return request(site("ajax/validate_iuc?"+q))}
 export async function validateMeter(meter:string,disco:string,meterType:string){const q=new URLSearchParams({meternumber:meter,disconame:String(discoIds[disco.toUpperCase()]??disco),mtype:String(meterType).toUpperCase()==="POSTPAID"?"2":"1"});return request(site("ajax/validate_meter_number?"+q))}

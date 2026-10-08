@@ -1,3 +1,4 @@
+import { finalizeRefund } from "../_shared/refunds.ts";
 import{createClient}from"https://esm.sh/@supabase/supabase-js@2";
 import { quotePurchase, routeCost } from "../_shared/pricing.ts";
 import*as cash from"../_shared/providers/cashsub.ts";
@@ -73,7 +74,7 @@ Deno.serve(async req=>{
     .sort((a:any,b:any)=>Number(a.provider_cost)-Number(b.provider_cost)||Number(b.health?.success_rate_15m||0)-Number(a.health?.success_rate_15m||0)||Number(a.health?.average_latency_ms||999999)-Number(b.health?.average_latency_ms||999999));
   const maxRouteCost=Number(p.base_provider_cost)+tolerance;
   const eligible=candidates.filter((m:any)=>Number(m.provider_cost)<=sell&&(amountBased||Number(m.provider_cost)<=maxRouteCost));
-  if(!eligible.length)return J({error:"No healthy profitable route"},503);
+  if(!eligible.length)return J({error:"This service is temporarily unavailable. Please try again later."},503);
 
   const transactionService=({DATA:"data",CABLE:"cable_tv",ELECTRICITY:"electricity",EXAM:"education",AIRTIME:"airtime"} as Record<string,string>)[service]||String(p.service_type||"data").toLowerCase();
   const network=String(p.network||"");
@@ -105,11 +106,11 @@ Deno.serve(async req=>{
     }
     if(result.state==="UNKNOWN"){
       await admin.from("datasub_transactions").update({provider:m.provider.code,provider_reference:result.reference,provider_cost:m.provider_cost,routing_state:"RECONCILING"}).eq("id",tx.id);
-      return J({success:false,reference,status:"pending",amount:sell,service_amount:serviceAmount,fee,message:"Provider result is being reconciled"},202);
+      return J({success:false,reference,status:"pending",amount:sell,service_amount:serviceAmount,fee,message:"Your purchase is being confirmed. Please do not buy it again yet."},202);
     }
   }
 
-  await admin.rpc("refund_datasub_wallet",{p_user:user.id,p_transaction:tx.id,p_amount:sell,p_reference:`REFUND:${reference}`});
-  await admin.from("datasub_transactions").update({status:"failed",routing_state:"REFUNDED"}).eq("id",tx.id);
-  return J({success:false,reference,status:"failed"},502);
+  const refunded = await finalizeRefund(admin, tx);
+  return J({success:false,reference,status:refunded?"failed":"pending",
+    message:refunded?"The purchase could not be completed. Your money has been returned to your wallet.":"We are completing your wallet refund. Please check your transactions shortly."},refunded?502:202);
 });
