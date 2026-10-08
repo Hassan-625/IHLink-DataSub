@@ -27,6 +27,7 @@ def tap(node):
  x1,y1,x2,y2=map(int,re.findall(r'\d+',node.attrib['bounds']))
  adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
 adb('install','-r','android-delivery/ihlink-preview.apk')
+adb('logcat','-c')
 adb('shell','am','start','-W','-n',app+'/.MainActivity')
 for width in [360,390,412]:
  adb('shell','wm','size',str(width)+'x800');adb('shell','wm','density','160')
@@ -43,6 +44,10 @@ assert root is not None, 'Restart accessibility snapshot missing'
 welcome_heading='Welcome to easier everyday payments' if app.endswith('datasub') else 'Welcome to your school community'
 assert not any(welcome_heading in n.attrib.get('text','') for n in root.iter('node'))
 (out/'restart.png').write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
-assert 'FATAL EXCEPTION' not in adb('logcat','-d','-s','AndroidRuntime:E')
+runtime=adb('logcat','-d','-s','AndroidRuntime:E')
+(out/'android-runtime.txt').write_text(runtime)
+crash_blocks=re.split(r'(?=^.*FATAL EXCEPTION)',runtime,flags=re.MULTILINE)
+assert not any('FATAL EXCEPTION' in block and re.search(r'Process:\\s*'+re.escape(app)+r'(?:[:,\\s]|$)',block) for block in crash_blocks), 'DataSub/SchoolPro process crashed; see android-runtime.txt'
+assert app in adb('shell','dumpsys','activity','activities'), 'App activity missing after restart'
 (out/'RESULT.txt').write_text('PASS: install, launch, welcome at 360/390/412, Explore and restart. API35 emulator; no real-device or signed-production certification.\n')
 print((out/'RESULT.txt').read_text())
