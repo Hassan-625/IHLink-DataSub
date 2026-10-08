@@ -61,6 +61,8 @@ interface AuthValue {
 const AuthContext = createContext<AuthValue | undefined>(undefined);
 const REMEMBER_KEY = "ih_remember_device";
 
+function friendlyAuthError(error:{code?:string}|null,fallback:string){if(!error)return null;const messages:Record<string,string>={invalid_credentials:'The email or password is incorrect.',email_not_confirmed:'Verify your email address before signing in.',user_already_exists:'An account already exists. Sign in or reset your password.',over_request_rate_limit:'Please wait before trying again.',over_email_send_rate_limit:'Please wait before requesting another email.',weak_password:'Choose a stronger password with at least eight characters.',signup_disabled:'Registration is temporarily unavailable. Please contact support.'};return messages[error.code||'']||fallback;}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -127,9 +129,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ? 15 * 60 * 1000
       : 30 * 60 * 1000;
     const expire=()=>{if(androidVault&&profile.role==='customer')void NativeVault.status().then(status=>{if(status.enabled)window.dispatchEvent(new Event('ihlink:lock-app'));else void client.auth.signOut({scope:'local'});});else void client.auth.signOut({scope:'local'});};
-    let timer = window.setTimeout(expire,timeoutMs);
+    const activityKey='ihlink.native.activity.'+session.user.id;
+    const isAdministrator=profile.role!=='customer';
+    const remembered=Number(sessionStorage.getItem(activityKey)||0);
+    const delay=androidVault&&isAdministrator&&remembered?Math.max(0,timeoutMs-(Date.now()-remembered)):timeoutMs;
+    if(androidVault&&!remembered)sessionStorage.setItem(activityKey,String(Date.now()));
+    let timer = window.setTimeout(expire,delay);
     const reset = () => {
       window.clearTimeout(timer);
+      if(androidVault)sessionStorage.setItem(activityKey,String(Date.now()));
       timer = window.setTimeout(expire,timeoutMs);
     };
     const events = ["pointerdown", "keydown", "scroll", "touchstart"];
@@ -151,16 +159,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       configured: isSupabaseConfigured,
       async signIn(email, password) {
         if (!supabase)
-          return "Authentication is awaiting the Supabase connection.";
-        const { error } = await supabase.auth.signInWithPassword({
+          return "Sign-in is temporarily unavailable. Please try again shortly.";
+        const { data,error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        return error?.message ?? null;
+        if(!error&&androidVault&&data.user)sessionStorage.setItem('ihlink.native.activity.'+data.user.id,String(Date.now()));
+        return friendlyAuthError(error,'Sign-in could not be completed. Please try again shortly.');
       },
       async signUp({ email, password, firstName, middleName, lastName, phone, sex, newsletterOptIn, service }) {
         if (!supabase)
-          return { error: "Authentication is awaiting the Supabase connection.", needsVerification: false, existingAccount: false };
+          return { error: "Sign-in is temporarily unavailable. Please try again shortly.", needsVerification: false, existingAccount: false };
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -177,7 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             },
           },
         });
-        if (error) return { error: error.message, needsVerification: false, existingAccount: false };
+        if (error) return { error: friendlyAuthError(error,'Your account could not be created. Check your details and try again.'), needsVerification: false, existingAccount: false };
         const identities = data.user?.identities;
         const existingAccount = Array.isArray(identities) && identities.length === 0;
         return { error: null, needsVerification: !data.session && !existingAccount, existingAccount };
@@ -194,7 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           options: { redirectTo: isNativeApp()?nativeAuthRedirect:callback.toString(), skipBrowserRedirect:isNativeApp() },
         });
         if(!error&&isNativeApp()&&data.url){try{await openNativeOAuth(data.url);}catch{return 'Could not open secure Google sign-in. Use email and password.';}}
-        return error?.message ?? null;
+        return friendlyAuthError(error,'Google sign-in could not be completed. Please try email and password.');
       },
       async signOut() {
         if (supabase) {
@@ -214,7 +223,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: isNativeApp()&&nativeOAuthEnabled?nativeAuthRedirect+'?flow=recovery':`${isNativeApp()?publicAppOrigin:window.location.origin}/auth/update-password`,
         });
-        return error?.message ?? null;
+        return friendlyAuthError(error,'Password recovery could not be requested. Please try again shortly.');
       },
     }),
     [adminAccess, serviceAccess, loading, profile, session],
