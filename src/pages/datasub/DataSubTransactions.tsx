@@ -1,3 +1,4 @@
+import {isNativeApp} from '@/lib/nativeAuth';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout, type SidebarSection } from '@/components/Sidebar';
@@ -65,7 +66,7 @@ export function DataSubTransactions() {
         </div>
 
         {/* Table */}
-        <Table
+        {isNativeApp()?<div className="grid gap-3">{paged.map(t=><button type="button" key={t.id} className="app-card text-left" onClick={()=>setSelected(t)}><div className="flex items-center justify-between gap-3"><b>{t.type}</b><b>{naira(t.amount)}</b></div><p className="mt-2 break-all text-sm text-muted">{t.recipient}</p><div className="mt-3 flex flex-wrap items-center justify-between gap-2"><span className="text-xs text-muted">{formatDateTime(t.date)}</span><Badge variant="status" status={t.status}/></div><span className="mt-3 block text-xs font-semibold">View details</span></button>)}</div>:<Table
           headers={[
             { label: 'Reference', align: 'left' },
             { label: 'Type', align: 'left' },
@@ -90,7 +91,7 @@ export function DataSubTransactions() {
               <button onClick={() => repeat(t)} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted"><RefreshCw className="w-4 h-4" /></button>
             </div>,
           ])}
-        />
+        />}
         {!loading && filtered.length === 0 && <p className="py-10 text-center text-sm text-muted">No transactions match your filters.</p>}
         <Pagination current={Math.min(page,totalPages)} total={totalPages} onChange={setPage} />
       </Card>

@@ -1,3 +1,4 @@
+import {isNativeApp} from '@/lib/nativeAuth';
 import { dataNetworkKey, dataPlanType, dataPlanTypeLabel, matchesPlanCategory } from '@/lib/dataPlanFilters';
 import { networks } from '@/lib/datasubServices';
 import { useEffect, useState, useRef } from 'react';
@@ -61,7 +62,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   const visibleProducts=service==='data'?networkProducts.filter(p=>matchesPlanCategory(p,dataType)):networkProducts;
   function changeProvider(name:string){setProvider(name);setDataType('all');setSelection('');setAmount('');setPin('');setChargedAmount(null);}
   function changeDataType(key:string){setDataType(key);setSelection('');setAmount('');setPin('');setChargedAmount(null);}
-  const typeFilters=service==='data'&&provider?<div className="my-5"><h4 className="mb-2 text-sm font-bold">Data type for {provider}</h4><div className="flex flex-wrap gap-2" role="group" aria-label="Data type">{typeKeys.map(key=>{const count=key==='all'?networkProducts.length:networkProducts.filter(p=>matchesPlanCategory(p,key)).length;return <button type="button" key={key} aria-pressed={dataType===key} onClick={()=>changeDataType(key)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold ${dataType===key?'border-emerald-600 bg-emerald-600 text-white':'border-border bg-white text-ink'}`}>{dataPlanTypeLabel(key)} <span className="text-xs">({count})</span></button>})}</div><p className="mt-2 text-xs text-muted">Only currently available plans for this network and data type are listed.</p></div>:null;
+  const typeFilters=service==='data'&&provider?<div className="my-5"><h4 className="mb-2 text-sm font-bold">Data type for {provider}</h4><div className="purchase-types flex flex-wrap gap-2" role="group" aria-label="Data type">{typeKeys.map(key=>{const count=key==='all'?networkProducts.length:networkProducts.filter(p=>matchesPlanCategory(p,key)).length;return <button type="button" key={key} aria-pressed={dataType===key} onClick={()=>changeDataType(key)} className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold ${dataType===key?'border-emerald-600 bg-emerald-600 text-white':'border-border bg-white text-ink'}`}>{dataPlanTypeLabel(key)} <span className="text-xs">({count})</span></button>})}</div><p className="mt-2 text-xs text-muted">Only currently available plans for this network and data type are listed.</p></div>:null;
   const { showToast } = useToast();
   const {wallet,userName,refresh}=useDataSubData();
   const {tier,priceFor}=useDataSubTier();
@@ -167,7 +168,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
       <div className="max-w-2xl mx-auto">
         <Card padding="lg">
           <div className="mb-8">
-            <Stepper steps={config.steps} current={step} themeClass="bg-emerald-500 border-emerald-500 text-white" />
+            {isNativeApp()?<div aria-live="polite"><p className="text-sm font-bold">Step {step+1} of {config.steps.length} · {config.steps[step]?.label}</p><progress className="mt-3 h-2 w-full accent-blue-500" value={step+1} max={config.steps.length}/></div>:<Stepper steps={config.steps} current={step} themeClass="bg-emerald-500 border-emerald-500 text-white" />}
           </div>
 
           {/* Step content */}
@@ -176,7 +177,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
               <div>
                 <h3 className="text-lg font-bold text-ink mb-4">Select {service === 'airtime' || service === 'data' ? 'Network' : service === 'electricity' ? 'Provider' : service === 'cable' ? 'Provider' : 'Exam'}</h3>
                 {productsLoading?<p role="status" className="mb-4 text-sm text-muted">Loading available plans…</p>:!catalogueError&&!liveProducts.length&&<div className="mb-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">This service is temporarily unavailable. Please try again shortly or choose another service.</div>}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="purchase-networks grid grid-cols-2 md:grid-cols-4 gap-3">
                   {providers.map((name, i) => (
                     
                     <button type="button" aria-pressed={service==='data'?dataNetworkKey(provider)===dataNetworkKey(name):provider===name} onClick={()=>changeProvider(name)} key={name} className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-colors ${(service==='data'?dataNetworkKey(provider)===dataNetworkKey(name):provider===name)?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
@@ -202,7 +203,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
                 <h3 className="text-lg font-bold text-ink mb-4">{service === 'data' ? 'Select Plan' : service === 'cable' ? 'Select Package' : 'Enter Amount'}</h3>
                 {typeFilters}
                 {service === 'data' || service === 'cable' || service === 'education' ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="purchase-plans grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {visibleProducts.map((p) => (
                       <button type="button" aria-pressed={selection===p.id} onClick={()=>{setSelection(p.id);setAmount(String(priceFor(p)));setPin('');setChargedAmount(null);}} key={p.id} className={`p-4 rounded-xl border-2 text-left ${selection===p.id?'border-emerald-500 bg-emerald-50':'border-border hover:border-emerald-400'}`}>
                         <p className="text-base font-bold text-ink">{p.name}</p>

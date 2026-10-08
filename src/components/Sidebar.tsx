@@ -1,3 +1,5 @@
+import {Browser} from '@capacitor/browser';
+import {isNativeApp} from '@/lib/nativeAuth';
 import {useDataSubPermissions,type DataSubPermission} from '@/hooks/useDataSubPermissions';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -69,6 +71,8 @@ export function DashboardLayout({
   const handleSignOut = async () => { await signOut(); navigate('/signin'); };
 
   const isActive = (href: string) => location.pathname === href;
+
+  if(isNativeApp())return <main className="native-workspace"><div className="native-workspace-title"><h1>{pageTitle}</h1>{rightActions}</div><details className="mb-5 rounded-2xl border p-3"><summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold">More options</summary><nav aria-label="Account and school options" className="grid gap-1">{visibleSections.flatMap(section=>section.items).map(item=><Link key={item.href} className="flex min-h-12 items-center gap-3 rounded-xl px-3 text-sm" to={item.href}>{item.icon}{item.label}</Link>)}<a className="flex min-h-12 items-center px-3 text-sm" href="https://ihlink-corporate.onrender.com/privacy" onClick={e=>{e.preventDefault();void Browser.open({url:e.currentTarget.href});}}>Privacy policy</a><a className="flex min-h-12 items-center px-3 text-sm" href="https://ihlink-corporate.onrender.com/terms" onClick={e=>{e.preventDefault();void Browser.open({url:e.currentTarget.href});}}>Terms of service</a><button type="button" className="min-h-12 px-3 text-left text-sm text-rose-700" onClick={()=>void handleSignOut()}>Sign out</button></nav></details>{children}</main>;
 
   return (
     <div className="min-h-screen bg-surface flex min-w-0">
