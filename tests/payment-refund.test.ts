@@ -173,3 +173,13 @@ test('DataStation exact unavailable-network validation rejects data purchase, ne
  assert.equal((await ds.reconcile('DATA','receipt')).state,'UNKNOWN');
  }}finally{globalThis.fetch=original;}
 });
+
+test('every provider confirms explicit HTTP 200 failed purchases without treating lookup errors as failures',async()=>{
+ const original=globalThis.fetch;
+ try{for(const adapter of [cash,ds,legit]){
+ globalThis.fetch=async(url:any)=>new Response(JSON.stringify(String(url).endsWith('/user')?{status:'success',AccessToken:'test-only'}:{status:'failed',message:'Purchase rejected'}));
+ assert.equal((await adapter.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:1},'TEST')).state,'FAILED');
+ }
+ globalThis.fetch=async()=>new Response(JSON.stringify({status:'fail',message:'Purchase rejected'}));assert.equal((await cash.purchase({service:'DATA',network:'MTN',recipient:'08000000000'},{external_plan_id:1},'TEST')).state,'FAILED');
+ }finally{globalThis.fetch=original;}
+});
