@@ -98,6 +98,9 @@ crash_blocks=re.split(r'(?=^.*FATAL EXCEPTION)',runtime,flags=re.MULTILINE)
 for block in crash_blocks:
  if 'FATAL EXCEPTION' not in block:continue
  process=re.search(r'Process:\s*([^,\s]+)',block)
+ if process is None and 'FATAL EXCEPTION: UiAutomation' in block and 'java.lang.RuntimeException: Bad file descriptor' in block and 'android.accessibilityservice.IAccessibilityServiceConnection' in block:
+  (out/'ui-automation-warning.txt').write_text('Observed Android UIAutomator accessibility connection failure; app restart, navigation and app-process checks remain required.\n')
+  continue
  assert process is not None, 'Unidentified process crash; see android-runtime.txt'
  assert process.group(1)!=app and not process.group(1).startswith(app+':'), 'Application process crashed; see android-runtime.txt'
 assert app in adb('shell','dumpsys','activity','activities'), 'App activity missing after restart'
