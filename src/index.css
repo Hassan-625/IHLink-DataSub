@@ -357,3 +357,8 @@ html.native-app .native-help-hero .bg-purple-50 { background:var(--app-raised); 
 .native-promo-card .mobile-brand-preview { width:205px; right:10px; bottom:10px; padding:9px; }
 .native-promo-card .mobile-brand-preview .brand-network-row { margin:6px 0; }
 .native-promo-card .promo-eyebrow,.native-promo-card .promo-cta { color:#edc985; }
+
+html.native-app .app-unlock { min-height:calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
+
+.native-promo-card > .mobile-brand-preview { display:block; left:auto; right:10px; width:205px; text-align:left; }
+.native-promo-card .mobile-brand-preview img { mask-image:none; }
