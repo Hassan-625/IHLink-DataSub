@@ -15,7 +15,8 @@ export function DataSubSecuritySetup(){
   refresh();window.addEventListener('ihlink:security-changed',refresh);return()=>{active=false;window.removeEventListener('ihlink:security-changed',refresh)};
  },[user?.id]);
  if(!user)return null;
- const missing=hasPin===false||(securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled)));
+ const devicePending=Boolean(securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled&&localStorage.getItem('ihlink.datasub.fingerprint-choice')!=='skipped')));
+ const missing=hasPin===false||(securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled&&localStorage.getItem('ihlink.datasub.fingerprint-choice')!=='skipped')));
  const open=Boolean(missing&&!dismissed);
  async function save(){if(!/^\d{4}$/.test(pin)||pin!==confirm){setNotice('Enter and confirm the same four-digit wallet PIN.');return;}setBusy(true);setNotice('');
   try{const r=await supabase!.rpc('set_datasub_transaction_pin',{p_pin:pin,p_current_pin:null});if(r.error)throw r.error;
@@ -24,8 +25,8 @@ export function DataSubSecuritySetup(){
  }
  return <Modal open={open} onClose={()=>{if(!busy)setDismissed(true)}} title="Secure your DataSub account" size="md" footer={<Button variant="secondary" disabled={busy} onClick={()=>setDismissed(true)}>Set up later</Button>}>
   <p className="mb-4 text-sm text-muted">Your six-digit passcode unlocks this device. Your separate four-digit wallet PIN confirms purchases and transfers. Fingerprint or device unlock is optional.</p>
-  {securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled))&&<NativeAppSecurity/>}
-  {hasPin===false&&<section className="rounded-xl border p-4"><h2 className="font-bold">Set your wallet transaction PIN</h2><p className="mt-2 text-sm text-muted">You need this PIN before making a purchase or transferring wallet funds.</p><div className="mt-4 grid gap-3">
+  {securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled&&localStorage.getItem('ihlink.datasub.fingerprint-choice')!=='skipped'))&&<NativeAppSecurity setupOnly/>}
+  {hasPin===false&&!devicePending&&(!securitySupported||vault)&&<section className="rounded-xl border p-4"><h2 className="font-bold">Set your wallet transaction PIN</h2><p className="mt-2 text-sm text-muted">You need this PIN before making a purchase or transferring wallet funds.</p><div className="mt-4 grid gap-3">
   <label className="text-sm">Four-digit wallet PIN<input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,'').slice(0,4))} className="mt-2 w-full rounded-xl border p-3"/></label>
   <label className="text-sm">Confirm wallet PIN<input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={confirm} onChange={e=>setConfirm(e.target.value.replace(/\D/g,'').slice(0,4))} className="mt-2 w-full rounded-xl border p-3"/></label>
   <Button disabled={busy} onClick={()=>void save()}>{busy?'Saving…':'Save wallet PIN'}</Button></div></section>}
