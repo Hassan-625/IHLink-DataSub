@@ -1,3 +1,4 @@
+import {isNativeApp} from '@/lib/nativeAuth';
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
@@ -16,6 +17,8 @@ export function AuthShell({
     "Manage your wallet and transaction history",
     "Smart Earner, Reseller and Developer API access",
   ];
+
+  if(isNativeApp())return <main className="app-page mx-auto w-full max-w-md"><section className="app-card"><h1 className="text-2xl font-extrabold">{title}</h1><p className="app-muted mb-6 mt-2 text-sm">{subtitle}</p>{children}</section></main>;
 
   return (
     <div className="min-h-screen grid bg-white lg:grid-cols-[45%_55%]">
