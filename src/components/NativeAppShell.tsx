@@ -26,6 +26,7 @@ export function NativeAppShell({children}:{children:ReactNode}){
  if(!isNativeApp())return <>{children}</>;
  if(loading)return <main className="app-page"><p role="status">Opening your account…</p></main>;
  const entry=signedOutNativeAccess(location.pathname);
+ if(!user&&entry==='welcome')return <NativeSignedOutHome/>;
  if(!user&&entry==='signin')return <Navigate to="/signin" replace/>;
  const home='/datasub'; const atHome=location.pathname===home||location.pathname==='/';
  const tabs=[{label:'Home',to:home,icon:Home},{label:'Services',to:'/datasub/services',icon:Grid2X2},{label:'Wallet',to:'/datasub/wallet',icon:Wallet},{label:'Activity',to:'/datasub/transactions',icon:History},{label:'Account',to:'/datasub/profile',icon:User}];

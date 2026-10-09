@@ -1,3 +1,4 @@
+import {isNativeApp,nativeOAuthEnabled} from '@/lib/nativeAuth';
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
@@ -251,14 +252,14 @@ export function SignInPage() {
           {busy ? "Signing in…" : "Sign In"}
         </Button>
 
-        <button
+        {(!isNativeApp()||nativeOAuthEnabled)&&<button
           disabled={busy}
           type="button"
           onClick={handleGoogleSignIn}
           className="w-full rounded-xl border py-3 text-sm font-semibold transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           Continue with Google
-        </button>
+        </button>}
 
         <p className="text-center text-sm text-muted">
           New to IHLink DataSub?{" "}

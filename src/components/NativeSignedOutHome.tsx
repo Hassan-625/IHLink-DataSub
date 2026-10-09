@@ -1,5 +1,9 @@
+import {MobileBrandPreview} from './MobileBrandPreview';
+import {useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Smartphone,ArrowRight} from 'lucide-react';
+import {ArrowRight} from 'lucide-react';
+const slides=[{"image": "/mobile/data-everyday.webp", "title": "Everyday payments, in your pocket", "description": "Data, airtime and bills in one simple app."}, {"image": "/mobile/data-bills.webp", "title": "Less time on bills. More time for you.", "description": "Choose a service, check the details and pay."}, {"image": "/mobile/data-connect.webp", "title": "Stay close. Stay connected.", "description": "Top up and keep your conversations going."}];
 export function NativeSignedOutHome(){
- return <main className="app-page mx-auto w-full max-w-md"><section className="app-card"><Smartphone className="mb-4 h-12 w-12"/><h1 className="text-2xl font-extrabold">Welcome to DataSub</h1><p className="app-muted mt-3 text-sm">Sign in for data, airtime and bills, or create your account to get started.</p><div className="mt-6 grid gap-3"><Link className="app-action" to="/signin">Sign in<ArrowRight size={20}/></Link><Link className="app-action app-action-secondary" to="/register">Create account</Link></div></section></main>;
+ const [index,setIndex]=useState(0);const slide=slides[index];
+ return <main className="welcome-screen datasub"><header className="welcome-brand"><img src="/brand/ihlink-icon.png" alt=""/><span>IHLink DataSub</span></header><div className="welcome-progress" aria-label="Welcome slides">{slides.map((item,i)=><button key={item.image} type="button" aria-label={`Welcome slide ${i+1}`} aria-current={index===i?'step':undefined} onClick={()=>setIndex(i)}><span className={i<=index?'shown':''}/></button>)}</div><button type="button" className="welcome-art" aria-label="Next welcome slide" onClick={()=>setIndex((index+1)%slides.length)}><img src={slide.image} alt="" loading="eager"/><MobileBrandPreview kind={index}/></button><section className="welcome-copy" aria-live="polite"><p className="welcome-eyebrow">Welcome to DataSub</p><h1>{slide.title}</h1><p>{slide.description}</p></section><section className="welcome-actions"><Link className="welcome-primary" to="/register">Create account<ArrowRight size={18}/></Link><Link className="welcome-secondary" to="/signin">Sign in</Link></section></main>;
 }

@@ -52,6 +52,9 @@ adb('shell','am','start','-W','-n',app+'/.MainActivity')
 for width in [360,390,412]:
  adb('shell','wm','size',str(width)+'x800');adb('shell','wm','density','160')
  find(welcome)
+ for label in ['Sign in','Create account' if app.endswith('datasub') else 'Register your school']:
+  item=find(label);x1,y1,x2,y2=map(int,re.findall(r'\d+',item.attrib['bounds']))
+  assert 0<=y1<y2<=800 and y2-y1>=44, 'Welcome action is not fully visible: '+label
  (out/('welcome-'+str(width)+'.png')).write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
 root=screen()
 windows=adb('shell','dumpsys','window')
