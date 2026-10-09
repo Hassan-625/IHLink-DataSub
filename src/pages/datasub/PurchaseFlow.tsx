@@ -1,3 +1,4 @@
+import {DataSubReceiptPreview} from '@/components/DataSubReceiptPreview';
 import {isNativeApp} from '@/lib/nativeAuth';
 import { dataNetworkKey, dataPlanType, dataPlanTypeLabel, matchesPlanCategory } from '@/lib/dataPlanFilters';
 import { networks } from '@/lib/datasubServices';
@@ -107,11 +108,13 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
     await refresh();
   };
 
-  const previewReceipt=async()=>{if(result!=='success'||!supabase)return;const values={reference,transaction_reference:reference,service:'Data',network:provider,provider,plan:chosen?.name||selection,recipient,phone_number:recipient,amount:naira(total),status:'Successful',date:new Date().toLocaleString('en-NG')};const r=await (supabase as any).rpc('render_ihlink_template',{p_platform:'datasub',p_type:'receipt',p_values:values});const html=r.data?.[0]?.rendered_content;if(!html){showToast('error','Receipt unavailable','Your receipt could not be opened. Please try again or contact support.');return;}const w=window.open('','_blank','width=900,height=720');if(!w)return;w.opener=null;w.document.write(`<!doctype html><html><head><title>Receipt ${reference}</title><style>body{font-family:Arial,sans-serif;background:#f8fafc;color:#172033;margin:0;padding:32px}@media print{body{background:#fff;padding:0}.no-print{display:none}}</style></head><body>${html}<div class="no-print" style="text-align:center;margin-top:24px"><button onclick="window.print()" style="padding:12px 20px;border:0;border-radius:10px;background:#047857;color:white;font-weight:700">Print / Save PDF</button></div></body></html>`);w.document.close()};
+  const [receiptOpen,setReceiptOpen]=useState(false);
+  const previewReceipt=()=>setReceiptOpen(true);
 
   if (result !== 'none') {
     return (
       <DashboardLayout product="datasub" sections={sidebarSections} userName={userName} userRole="Customer" pageTitle={config.title} pageBreadcrumb={[{ label: 'Result' }]}>
+        <DataSubReceiptPreview open={receiptOpen&&result==='success'} onClose={()=>setReceiptOpen(false)} reference={reference} service={config.title} network={provider} plan={chosen?.name||selection} recipient={recipient} amount={total} date={new Date().toLocaleString('en-NG')}/>
         <Card padding="lg" className="max-w-lg mx-auto">
           {result === 'success' && (
             <div className="text-center py-8">
