@@ -1,3 +1,4 @@
+import {AppSecurityStatusSync} from '@/components/AppSecurityStatusSync';
 import {DataSubSecuritySetup} from '@/components/DataSubSecuritySetup';
 import {ReferralCapture} from '@/components/ReferralCapture';
 import {NativeSessionGate} from '@/components/NativeSessionGate';
@@ -53,7 +54,7 @@ createRoot(root).render(
     <StartupErrorBoundary>
       <BrowserRouter>
         <NativeSessionGate><AuthProvider>
-          <NativeMobileShell><ReferralCapture/><App/><DataSubSecuritySetup/><AccountClosureControl/></NativeMobileShell>
+          <NativeMobileShell><ReferralCapture/><App/><DataSubSecuritySetup/><AppSecurityStatusSync/><AccountClosureControl/></NativeMobileShell>
         </AuthProvider></NativeSessionGate>
       </BrowserRouter>
     </StartupErrorBoundary>

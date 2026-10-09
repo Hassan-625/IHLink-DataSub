@@ -1,7 +1,7 @@
 import os,re,subprocess,time,struct,zlib,xml.etree.ElementTree as ET
 from pathlib import Path
 app=os.environ['ANDROID_APP_ID']
-explore='Explore services' if app.endswith('datasub') else 'Explore SchoolPro'
+welcome='Welcome to DataSub' if app.endswith('datasub') else 'Welcome to SchoolPro'
 heading='All DataSub Services' if app.endswith('datasub') else 'SchoolPro'
 out=Path('android-delivery/device-checks');out.mkdir(parents=True,exist_ok=True)
 def adb(*args):return subprocess.check_output(['adb',*args],text=True,timeout=25)
@@ -51,7 +51,10 @@ adb('logcat','-c')
 adb('shell','am','start','-W','-n',app+'/.MainActivity')
 for width in [360,390,412]:
  adb('shell','wm','size',str(width)+'x800');adb('shell','wm','density','160')
- find(explore)
+ find(welcome)
+ for label in ['Sign in','Create account' if app.endswith('datasub') else 'Register your school']:
+  item=find(label);x1,y1,x2,y2=map(int,re.findall(r'\d+',item.attrib['bounds']))
+  assert 0<=y1<y2<=800 and y2-y1>=44, 'Welcome action is not fully visible: '+label
  (out/('welcome-'+str(width)+'.png')).write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
 root=screen()
 windows=adb('shell','dumpsys','window')
@@ -70,16 +73,21 @@ assert max(background)<60, 'Dark theme has a light native status-bar background'
 bright=sum(1 for row in pixels[:bar_bottom] for x in range(0,w*bpp,bpp) if min(row[x:x+3])>180)
 assert bright>20, 'Phone status icons lack contrast on dark background'
 (out/'system-bar-check.txt').write_text('PASS: visible phone status bar and app heading below its bounds.\n')
-tap(find(explore))
-find(heading)
-(out/'explore.png').write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
+def assert_signed_out():
+ root=screen();assert root is not None, 'Signed-out screen snapshot missing'
+ texts=[n.attrib.get('text','') for n in root.iter('node')]
+ assert not any(text in ['Home','Services','Wallet','Activity','Account','Results'] for text in texts), 'Private navigation shown before sign-in'
+ assert not any('© 2026 IHLink' in text for text in texts), 'Website footer shown before sign-in'
+assert_signed_out()
+tap(find('Sign in' if app.endswith('datasub') else 'Student sign in'))
+find('Email address' if app.endswith('datasub') else 'Admission number')
+if app.endswith('schoolpro'):find('School code')
+assert_signed_out()
+(out/'signed-out-sign-in.png').write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
 adb('shell','am','force-stop',app)
 adb('shell','am','start','-W','-n',app+'/.MainActivity')
-find('Your DataSub account' if app.endswith('datasub') else 'Run Your School Smarter')
-root=screen()
-assert root is not None, 'Restart accessibility snapshot missing'
-welcome_heading='Welcome to easier everyday payments' if app.endswith('datasub') else 'Welcome to your school community'
-assert not any(welcome_heading in n.attrib.get('text','') for n in root.iter('node'))
+find(welcome)
+assert_signed_out()
 (out/'restart.png').write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
 runtime=adb('logcat','-d','-s','AndroidRuntime:E')
 (out/'android-runtime.txt').write_text(runtime)
@@ -93,12 +101,11 @@ assert app in adb('shell','dumpsys','activity','activities'), 'App activity miss
 root=screen()
 assert root is not None, 'App navigation snapshot missing'
 texts=[n.attrib.get('text','') for n in root.iter('node')]
-assert all(any(label==text for text in texts) for label in ['Home','Account']), 'Bottom navigation missing'
-assert not any('© 2026 IHLink' in text for text in texts), 'Website footer present in app'
+assert_signed_out()
 adb('shell','am','start','-W','-a','android.settings.APPLICATION_DETAILS_SETTINGS','-d','package:'+app)
 find('IHLink DataSub' if app.endswith('datasub') else 'IHLink SchoolPro')
 (out/'app-icon.png').write_bytes(subprocess.check_output(['adb','exec-out','screencap','-p']))
 adb('shell','am','start','-W','-n',app+'/.MainActivity')
-find('Home')
-(out/'RESULT.txt').write_text('PASS: install, launch, welcome at 360/390/412, Explore and restart. API35 emulator; no real-device or signed-production certification.\n')
+find(welcome)
+(out/'RESULT.txt').write_text('PASS: install, signed-out welcome at 360/390/412, sign-in, no private navigation before login, phone status bar and restart. API35 emulator; no physical-device or authenticated-account certification.\n')
 print((out/'RESULT.txt').read_text())

@@ -1,3 +1,4 @@
+import {NativePromotions} from './NativePromotions';
 import {NativeServiceGrid} from '@/components/NativeServiceGrid';
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
@@ -18,5 +19,5 @@ export function NativeAppHome(){
   </section>
   <section><div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-bold">Quick services</h2><Link to="/datasub/services" className="flex min-h-11 items-center gap-1 text-sm font-semibold">View all<ChevronRight size={16}/></Link></div><NativeServiceGrid/></section>
   <section className="app-card"><div className="flex items-center justify-between gap-2"><h2 className="font-bold">Recent activity</h2><Link to={user?'/datasub/transactions':'/signin'} className="flex min-h-11 items-center gap-1 text-sm">History<ChevronRight size={16}/></Link></div>{!user?<p className="app-muted py-4 text-sm">Sign in to see your purchases and wallet.</p>:loading?<p role="status" className="app-muted py-4 text-sm">Loading activity…</p>:error?<p className="app-muted py-4 text-sm">Refresh to see your latest activity.</p>:!transactions.length?<p className="app-muted py-4 text-sm">No purchases yet. Your activity will appear here.</p>:transactions.slice(0,3).map(t=><Link key={t.id} to="/datasub/transactions" className="app-list-row"><div className="min-w-0"><p className="truncate font-semibold">{t.type}</p><p className="app-muted mt-1 text-xs">{new Date(t.date).toLocaleDateString('en-NG')} · {t.status==='success'?'Successful':t.status==='reversed'?'Reversed':t.status==='failed'?'Unsuccessful':'Pending'}</p></div><b className="shrink-0 text-sm">{naira(t.amount)}</b></Link>)}</section>
- </main>;
+ <NativePromotions/></main>;
 }
