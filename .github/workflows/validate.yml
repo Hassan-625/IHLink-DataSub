@@ -19,4 +19,14 @@ jobs:
       - run: node scripts/test-browser-vault.mjs
       - run: node scripts/test-app-idle-lock.mjs
       - run: node scripts/test-pin-recovery.mjs
+      - name: Check mobile frames, carousel and customer layouts
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+          node scripts/test-mobile-layout.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-layout-checks
+          path: mobile-ui-evidence/
       - run: npm run build
