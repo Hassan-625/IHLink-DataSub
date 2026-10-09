@@ -15,4 +15,6 @@ jobs:
       - run: npm ci
       - run: node --experimental-strip-types --test tests/*.test.ts
       - run: npm run typecheck
+      - run: node scripts/test-app-idle-lock.mjs
+      - run: node scripts/test-pin-recovery.mjs
       - run: npm run build
