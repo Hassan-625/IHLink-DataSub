@@ -62,7 +62,15 @@ jobs:
           target: google_apis
           disable-animations: true
           script: |
+            set +e
             android/gradlew --no-daemon -p android :app:connectedDebugAndroidTest
+            test_status=$?
+            mkdir -p android-delivery/instrumentation
+            adb logcat -d > android-delivery/instrumentation/logcat.txt
+            cp -R android/app/build/outputs/androidTest-results/connected android-delivery/instrumentation/results || true
+            cp -R android/app/build/reports/androidTests/connected android-delivery/instrumentation/reports || true
+            if [ "$test_status" -ne 0 ]; then exit "$test_status"; fi
+            set -e
             python scripts/android-smoke.py
             cp -r android/app/build/reports/androidTests/connected android-delivery/vault-checks
       - uses: actions/upload-artifact@v4
