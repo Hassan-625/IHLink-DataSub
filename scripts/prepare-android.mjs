@@ -67,3 +67,8 @@ const stylesPath=`${res}/values/styles.xml`;
 let styles=readFileSync(stylesPath,'utf8');
 styles=styles.replace(/(<style name="AppTheme.NoActionBar"[^>]*>)/,'$1\n        <item name="android:windowBackground">#10151d</item>');
 writeFileSync(stylesPath,styles);
+
+for(const plugin of ["NativePrint","NativeFiles"]){copyFileSync(`native/android/${plugin}Plugin.java`,`${systemRoot}/${plugin}Plugin.java`);writeFileSync(activityPath,readFileSync(activityPath,"utf8").replace("registerPlugin(NativeSystemThemePlugin.class);",`registerPlugin(NativeSystemThemePlugin.class);registerPlugin(${plugin}Plugin.class);`));}
+copyFileSync("native/android/NativePrintDialogTest.java",`${vaultTestRoot}/NativePrintDialogTest.java`);
+
+copyFileSync("native/android/NativeFilesDialogTest.java",`${vaultTestRoot}/NativeFilesDialogTest.java`);
