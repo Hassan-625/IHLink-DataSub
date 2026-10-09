@@ -209,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signOut() {
         if (supabase) {
           await supabase.auth.signOut({ scope: "local" });
-          if(androidVault)await NativeVault.reset();
+          // Normal sign-out removes the session, preserving device unlock preferences.
           setSession(null);
           setProfile(null);
           setAdminAccess([]);
