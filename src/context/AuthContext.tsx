@@ -1,5 +1,5 @@
 import {androidVault,NativeVault} from '@/lib/nativeVault';
-import {isNativeApp,nativeAuthRedirect,openNativeOAuth,publicAppOrigin,nativeOAuthEnabled} from '@/lib/nativeAuth';
+import {isNativeApp,nativeAuthRedirect,publicAppOrigin,nativeOAuthEnabled} from '@/lib/nativeAuth';
 import {
   createContext,
   useContext,
@@ -53,7 +53,6 @@ interface AuthValue {
   configured: boolean;
   signIn: (email: string, password: string) => Promise<string | null>;
   signUp: (input: SignUpInput) => Promise<{ error: string | null; needsVerification: boolean; existingAccount: boolean }>;
-  signInWithGoogle: () => Promise<string | null>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<string | null>;
 }
@@ -191,20 +190,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const identities = data.user?.identities;
         const existingAccount = Array.isArray(identities) && identities.length === 0;
         return { error: null, needsVerification: !data.session && !existingAccount, existingAccount };
-      },
-      async signInWithGoogle() {
-        if (!supabase)
-          return "Google sign-in is awaiting the Supabase connection.";
-        const next = sessionStorage.getItem("ih_auth_next");
-        const callback = new URL("/signin", window.location.origin);
-        if (next && next.startsWith("/") && !next.startsWith("//")) callback.searchParams.set("next", next);
-        if(isNativeApp()&&!nativeOAuthEnabled)return 'Google sign-in is not enabled for this app build. Use email and password.';
-        const { data, error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: { redirectTo: isNativeApp()?nativeAuthRedirect:callback.toString(), skipBrowserRedirect:isNativeApp() },
-        });
-        if(!error&&isNativeApp()&&data.url){try{await openNativeOAuth(data.url);}catch{return 'Could not open secure Google sign-in. Use email and password.';}}
-        return friendlyAuthError(error,'Google sign-in could not be completed. Please try email and password.');
       },
       async signOut() {
         if (supabase) {

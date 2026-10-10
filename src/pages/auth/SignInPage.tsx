@@ -1,4 +1,3 @@
-import {isNativeApp,nativeOAuthEnabled} from '@/lib/nativeAuth';
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
@@ -25,7 +24,7 @@ function safeDestination(search: string, state: unknown) {
 }
 
 export function SignInPage() {
-  const { signIn, signInWithGoogle, configured, user } = useAuth();
+  const { signIn, configured, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -110,39 +109,6 @@ export function SignInPage() {
     });
   }
 
-  async function handleGoogleSignIn() {
-    const next = safeDestination(
-      location.search,
-      location.state,
-    );
-
-    if (next) {
-      sessionStorage.setItem("ih_auth_next", next);
-    }
-
-    if (rememberDevice) {
-      localStorage.setItem("ih_remember_device", "1");
-    } else {
-      localStorage.removeItem("ih_remember_device");
-    }
-
-    setBusy(true);
-    setError(null);
-
-    try {
-      const message = await signInWithGoogle();
-
-      if (message) {
-        setError(message);
-      }
-    } catch {
-      setError(
-        "Unable to start Google sign-in. Please try again.",
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
 
   return (
     <AuthShell
@@ -252,14 +218,7 @@ export function SignInPage() {
           {busy ? "Signing in…" : "Sign In"}
         </Button>
 
-        {(!isNativeApp()||nativeOAuthEnabled)&&<button
-          disabled={busy}
-          type="button"
-          onClick={handleGoogleSignIn}
-          className="w-full rounded-xl border py-3 text-sm font-semibold transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          Continue with Google
-        </button>}
+        
 
         <p className="text-center text-sm text-muted">
           New to IHLink DataSub?{" "}
