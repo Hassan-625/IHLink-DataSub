@@ -136,7 +136,7 @@ export default function App() {
 
           <Route
             path="/datasub/api"
-            element={<DataSubApi />}
+            element={<ProtectedRoute product="datasub" requireServiceAccess><DataSubPermissionGate permission="api"><DataSubApi /></DataSubPermissionGate></ProtectedRoute>}
           />
 
           <Route

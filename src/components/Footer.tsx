@@ -1,3 +1,4 @@
+import {useDataSubPermissions} from '@/hooks/useDataSubPermissions';
 import {isNativeApp} from '@/lib/nativeAuth';
 import { WhatsAppIcon } from './WhatsAppIcon';
 import { Link } from 'react-router-dom';
@@ -21,6 +22,7 @@ const sections = [
 ];
 
 export function Footer({}: FooterProps) {
+  const {can}=useDataSubPermissions();
   const theme = productThemes.datasub;
   if(isNativeApp())return null;
   return <footer className={`${theme.footerBg} ${theme.footerText} mt-20`}>
@@ -37,7 +39,7 @@ export function Footer({}: FooterProps) {
             <a href={IHLinkContact.emailHref} className="flex items-center gap-2.5 text-sm opacity-70"><Mail className="w-4 h-4"/>{IHLinkContact.email}</a>
           </div>
         </div>
-        {sections.map(section => <div key={section.title} className="col-span-1 lg:col-span-2"><h4 className="text-sm font-bold text-white mb-3">{section.title}</h4><ul className="space-y-2">{section.links.map(([label,href]) => <li key={href}><Link to={href} className="text-sm opacity-70 hover:opacity-100 flex items-center gap-1"><ArrowRight className="w-3 h-3"/>{label}</Link></li>)}</ul></div>)}
+        {sections.map(section => <div key={section.title} className="col-span-1 lg:col-span-2"><h4 className="text-sm font-bold text-white mb-3">{section.title}</h4><ul className="space-y-2">{section.links.filter(([,href])=>href!=='/datasub/api'||can('api')).map(([label,href]) => <li key={href}><Link to={href} className="text-sm opacity-70 hover:opacity-100 flex items-center gap-1"><ArrowRight className="w-3 h-3"/>{label}</Link></li>)}</ul></div>)}
       </div>
       <div className="mt-10 pt-6 border-t border-white/10 text-xs opacity-60">© 2026 IHLink Co. Ltd. — IHLink DataSub.</div>
     </div>

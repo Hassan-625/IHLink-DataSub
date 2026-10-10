@@ -1,0 +1,38 @@
+begin;
+do $$
+declare u uuid:=gen_random_uuid(); stranger uuid:=gen_random_uuid(); k jsonb; w jsonb; blocked boolean; tx uuid:=gen_random_uuid(); n integer;
+begin
+ insert into auth.users(id,aud,role,email,raw_app_meta_data,raw_user_meta_data,created_at,updated_at) select x,'authenticated','authenticated','api-fixture-'||x||'@example.invalid','{}','{"first_name":"API","middle_name":"Test","last_name":"Fixture"}',now(),now() from unnest(array[u,stranger])x;
+ insert into public.customer_service_access(user_id,product,status)values(u,'datasub','active') on conflict(user_id,product) do update set status='active';
+ insert into public.datasub_reseller_accounts(user_id,business_name,phone,tier_code,status,api_access_approved)values(u,'API fixture','08000000000','bronze','active',false);
+ perform set_config('request.jwt.claim.sub',u::text,true);execute 'set local role authenticated';
+ blocked:=false;begin perform public.create_datasub_api_credential('Test key','sandbox');exception when others then blocked:=true;end;
+ if not blocked then raise exception 'Unapproved account created API key';end if;
+ execute 'reset role';update public.datasub_reseller_accounts set api_access_approved=true where user_id=u;
+ execute 'set local role authenticated';
+ k:=public.create_datasub_api_credential('Test key','sandbox');if k->>'secret' is null then raise exception 'Approved bronze account could not create key';end if;
+ blocked:=false;begin perform public.configure_datasub_api_webhook('https://127.0.0.1/private');exception when others then blocked:=true;end;
+ if not blocked then raise exception 'Private callback address accepted';end if;
+ w:=public.configure_datasub_api_webhook('https://example.com/ihlink-callback');if w->>'secret' is null then raise exception 'Callback secret missing';end if;
+ execute 'reset role';
+ insert into public.datasub_transactions(id,user_id,reference,service_type,provider,recipient,amount,status,routing_state,metadata) values(tx,u,'fixture-'||tx,'data','fixture','08000000000',100,'success','SETTLED',jsonb_build_object('source','api','api_reference','ORDER-1001','product_code','FIXTURE'));
+ if (select count(*) from public.datasub_webhook_deliveries where transaction_id=tx)<>1 then raise exception 'Terminal callback was not queued';end if;
+ if (select payload->'data'->>'reference' from public.datasub_webhook_deliveries where transaction_id=tx)<>'ORDER-1001' then raise exception 'Merchant reference not preserved';end if;
+ update public.datasub_transactions set status='success' where id=tx;
+ if (select count(*) from public.datasub_webhook_deliveries where transaction_id=tx)<>1 then raise exception 'Duplicate callback queued';end if;
+ for n in 1..60 loop if not public.consume_datasub_api_request(u) then raise exception 'Rate limit too low';end if;end loop;
+ if public.consume_datasub_api_request(u) then raise exception 'Rate limit not enforced';end if;
+ execute 'set local role authenticated';
+ blocked:=false;begin execute 'select secret_hash from public.datasub_api_webhooks';exception when insufficient_privilege then blocked:=true;end;
+ if not blocked then raise exception 'Callback signing hash exposed';end if;
+ blocked:=false;begin perform public.claim_datasub_api_callbacks();exception when insufficient_privilege then blocked:=true;end;
+ if not blocked then raise exception 'Customer accessed delivery signing keys';end if;
+ perform public.revoke_datasub_api_credential((k->>'id')::uuid);
+ if not exists(select 1 from public.datasub_api_credentials where id=(k->>'id')::uuid and status='revoked')then raise exception 'API revocation failed';end if;
+ perform set_config('request.jwt.claim.sub',stranger::text,true);
+ if exists(select 1 from public.datasub_api_webhooks where id=(w->>'id')::uuid)then raise exception 'Cross-account callback visible';end if;
+ blocked:=false;begin perform public.disable_datasub_api_webhook((w->>'id')::uuid);exception when others then blocked:=true;end;
+ if not blocked then raise exception 'Cross-account revocation accepted';end if;
+ execute 'reset role';
+end $$;
+rollback;

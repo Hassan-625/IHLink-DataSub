@@ -1,3 +1,4 @@
+import {useDataSubPermissions} from '@/hooks/useDataSubPermissions';
 import {isNativeApp} from '@/lib/nativeAuth';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -41,6 +42,8 @@ interface HeaderProps {
 }
 
 export function Header({ showAnnouncement = true, announcementText }: HeaderProps) {
+  const {can}=useDataSubPermissions();
+  const visibleNav=nav.filter(item=>item.href!=='/datasub/api'||can('api'));
   const theme = productThemes.datasub;
   const location = useLocation();
   const { user, profile } = useAuth();
@@ -57,7 +60,7 @@ export function Header({ showAnnouncement = true, announcementText }: HeaderProp
         <div className="flex items-center justify-between h-16">
           <Logo product="datasub" size="md" />
           <nav className="hidden xl:flex items-center gap-0.5 whitespace-nowrap">
-            {nav.map(item => item.children ? (
+            {visibleNav.map(item => item.children ? (
               <Dropdown key={item.label} align="right" width={280} trigger={<button className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg ${isActive(item.href) ? theme.textClass : 'text-ink hover:bg-gray-50'}`}>{item.label}<ChevronDown className="w-3.5 h-3.5"/></button>}>
                 {(close) => <><DropdownLabel>DataSub Services</DropdownLabel>{item.children!.map(child => <Link key={child.href} to={child.href} onClick={close} className="block px-3.5 py-2 hover:bg-gray-50"><span className="font-semibold block text-sm">{child.label}</span><span className="text-xs text-muted">{child.description}</span></Link>)}</>}
               </Dropdown>
@@ -69,7 +72,7 @@ export function Header({ showAnnouncement = true, announcementText }: HeaderProp
           </div>
         </div>
       </div>
-      {mobileOpen && <div className="xl:hidden max-h-[calc(100vh-5rem)] overflow-y-auto border-t border-border bg-white p-4 space-y-1">{nav.flatMap(item=>item.children?[{label:item.label,href:item.href},...item.children.map(child=>({label:child.label,href:child.href}))]:[{label:item.label,href:item.href}]).map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{user&&profile?.role==='super_admin'?<Link to="/admin" className="flex-1" onClick={()=>setMobileOpen(false)}><Button fullWidth themeClass={theme.btnClass}>DataSub Admin</Button></Link>:!user&&<><Link to="/signin" className="flex-1" onClick={()=>setMobileOpen(false)}><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1" onClick={()=>setMobileOpen(false)}><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
+      {mobileOpen && <div className="xl:hidden max-h-[calc(100vh-5rem)] overflow-y-auto border-t border-border bg-white p-4 space-y-1">{visibleNav.flatMap(item=>item.children?[{label:item.label,href:item.href},...item.children.map(child=>({label:child.label,href:child.href}))]:[{label:item.label,href:item.href}]).map(item => <Link key={item.href} to={item.href} onClick={() => setMobileOpen(false)} className="block px-3 py-2 text-sm font-semibold rounded-lg hover:bg-gray-50">{item.label}</Link>)}<div className="pt-3 border-t border-border flex gap-2">{user&&profile?.role==='super_admin'?<Link to="/admin" className="flex-1" onClick={()=>setMobileOpen(false)}><Button fullWidth themeClass={theme.btnClass}>DataSub Admin</Button></Link>:!user&&<><Link to="/signin" className="flex-1" onClick={()=>setMobileOpen(false)}><Button variant="secondary" fullWidth>Sign In</Button></Link><Link to="/register" className="flex-1" onClick={()=>setMobileOpen(false)}><Button fullWidth themeClass={theme.btnClass}>Get Started</Button></Link></>}</div></div>}
     </header>
   </>;
 }
