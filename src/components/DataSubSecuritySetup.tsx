@@ -1,3 +1,4 @@
+import {setupReminderDeferred,deferSetupReminder} from '@/lib/securitySetupReminder';
 import {useEffect,useState} from 'react';
 import {useAuth} from '@/context/AuthContext';
 import {supabase} from '@/lib/supabase';
@@ -6,10 +7,10 @@ import {NativeAppSecurity} from '@/components/NativeAppSecurity';
 import {Modal} from '@/components/ui/Modal';
 import {Button} from '@/components/ui/Button';
 export function DataSubSecuritySetup(){
- const {user}=useAuth();
+ const {user}=useAuth();const reminderKey='ihlink.datasub.setup-reminder.'+(user?.id||'signed-out');function dismissReminder(){deferSetupReminder(reminderKey);setDismissed(true)}
  const [hasPin,setHasPin]=useState<boolean|null>(null),[vault,setVault]=useState<VaultStatus|null>(null),[dismissed,setDismissed]=useState(false);
  const [pin,setPin]=useState(''),[confirm,setConfirm]=useState(''),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
- useEffect(()=>{setHasPin(null);setVault(null);setPin('');setConfirm('');setNotice('');setDismissed(false);
+ useEffect(()=>{setHasPin(null);setVault(null);setPin('');setConfirm('');setNotice('');setDismissed(setupReminderDeferred(reminderKey));
   if(!user||!supabase)return;let active=true;
   const refresh=()=>{void supabase!.rpc('datasub_has_transaction_pin').then(r=>{if(active&&!r.error)setHasPin(r.data===true)});if(securitySupported)void NativeVault.status().then(value=>{if(active)setVault(value)}).catch(()=>{});};
   refresh();window.addEventListener('ihlink:security-changed',refresh);return()=>{active=false;window.removeEventListener('ihlink:security-changed',refresh)};
@@ -23,7 +24,7 @@ export function DataSubSecuritySetup(){
    const check=await supabase!.rpc('datasub_has_transaction_pin');if(check.error||check.data!==true)throw Error('PIN not confirmed');setHasPin(true);setPin('');setConfirm('');setNotice('Your wallet transaction PIN is ready.');window.dispatchEvent(new Event('ihlink:security-changed'));
   }catch{setNotice('We could not save your wallet PIN. Please try again.');}finally{setBusy(false);}
  }
- return <Modal open={open} onClose={()=>{if(!busy)setDismissed(true)}} title="Secure your DataSub account" size="md" footer={<Button variant="secondary" disabled={busy} onClick={()=>setDismissed(true)}>Set up later</Button>}>
+ return <Modal open={open} onClose={()=>{if(!busy)dismissReminder()}} title="Secure your DataSub account" size="md" footer={<Button variant="secondary" disabled={busy} onClick={dismissReminder}>Set up later</Button>}>
   <p className="mb-4 text-sm text-muted">Your six-digit passcode unlocks this device. Your separate four-digit wallet PIN confirms purchases and transfers. Fingerprint or device unlock is optional.</p>
   {securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled&&localStorage.getItem('ihlink.datasub.fingerprint-choice')!=='skipped'))&&<NativeAppSecurity setupOnly/>}
   {hasPin===false&&!devicePending&&(!securitySupported||vault)&&<section className="rounded-xl border p-4"><h2 className="font-bold">Set your wallet transaction PIN</h2><p className="mt-2 text-sm text-muted">You need this PIN before making a purchase or transferring wallet funds.</p><div className="mt-4 grid gap-3">
