@@ -7,16 +7,16 @@ export type TierPricedProduct={retail_price:number;reseller_price?:number|null;a
 
 export function useDataSubTier(){
   const {user}=useAuth();
-  const [state,setState]=useState<{userId:string;tier:DataSubTier}>({userId:"",tier:"smart_earner"});
+  const [state,setState]=useState<{userId:string;tier:DataSubTier;apiApproved:boolean;loaded:boolean}>({userId:"",tier:"smart_earner",apiApproved:false,loaded:false});
   const tier=state.userId===user?.id?state.tier:"smart_earner";
-  const setTier=(value:DataSubTier)=>setState({userId:user?.id||"",tier:value});
-  useEffect(()=>{let alive=true;setTier("smart_earner");(async()=>{
+  const setTier=(value:DataSubTier,apiApproved=false,loaded=true)=>setState({userId:user?.id||"",tier:value,apiApproved,loaded});
+  useEffect(()=>{let alive=true;setTier("smart_earner",false,false);(async()=>{
     if(!supabase||!user){if(alive)setTier("smart_earner");return;}
     const {data}=await supabase.from("datasub_reseller_accounts").select("status,tier_code,api_access_approved").eq("user_id",user.id).maybeSingle();
     if(!alive)return;
     if(data?.status!=="active")setTier("smart_earner");
-    else if(data?.tier_code==="top_seller")setTier("top_seller");
-    else if(data?.api_access_approved===true)setTier("api_user");
+    else if(data?.tier_code==="top_seller")setTier("top_seller",data.api_access_approved===true);
+    else if(data?.api_access_approved===true)setTier("api_user",true);
     else setTier("reseller");
   })();return()=>{alive=false};},[user]);
   const priceFor=useCallback((p:TierPricedProduct)=>{
@@ -25,5 +25,5 @@ export function useDataSubTier(){
     if(tier==="reseller")return Number(p.reseller_price??p.retail_price);
     return Number(p.retail_price);
   },[tier]);
-  return {tier,priceFor};
+  return {tier,priceFor,apiApproved:state.userId===user?.id&&state.apiApproved,loading:Boolean(user)&&(state.userId!==user?.id||!state.loaded)};
 }
