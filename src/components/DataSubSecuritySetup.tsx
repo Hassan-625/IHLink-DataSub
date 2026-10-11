@@ -2,7 +2,7 @@ import {setupReminderDeferred,deferSetupReminder} from '@/lib/securitySetupRemin
 import {useEffect,useState} from 'react';
 import {useAuth} from '@/context/AuthContext';
 import {supabase} from '@/lib/supabase';
-import {NativeVault,securitySupported,type VaultStatus} from '@/lib/nativeVault';
+import {androidVault,NativeVault,securitySupported,type VaultStatus} from '@/lib/nativeVault';
 import {NativeAppSecurity} from '@/components/NativeAppSecurity';
 import {Modal} from '@/components/ui/Modal';
 import {Button} from '@/components/ui/Button';
@@ -25,7 +25,7 @@ export function DataSubSecuritySetup(){
   }catch{setNotice('We could not save your wallet PIN. Please try again.');}finally{setBusy(false);}
  }
  return <Modal open={open} onClose={()=>{if(!busy)dismissReminder()}} title="Secure your DataSub account" size="md" footer={<Button variant="secondary" disabled={busy} onClick={dismissReminder}>Set up later</Button>}>
-  <p className="mb-4 text-sm text-muted">Your six-digit passcode unlocks this device. Your separate four-digit wallet PIN confirms purchases and transfers. Fingerprint or device unlock is optional.</p>
+  <p className="mb-4 text-sm text-muted">Your six-digit passcode unlocks this device. Your separate four-digit wallet PIN confirms purchases and transfers. {androidVault?'Fingerprint or device unlock is optional.':''}</p>
   {securitySupported&&vault&&(!vault.enabled||(vault.biometricAvailable&&!vault.biometricEnabled&&localStorage.getItem('ihlink.datasub.fingerprint-choice')!=='skipped'))&&<NativeAppSecurity setupOnly/>}
   {hasPin===false&&!devicePending&&(!securitySupported||vault)&&<section className="rounded-xl border p-4"><h2 className="font-bold">Set your wallet transaction PIN</h2><p className="mt-2 text-sm text-muted">You need this PIN before making a purchase or transferring wallet funds.</p><div className="mt-4 grid gap-3">
   <label className="text-sm">Four-digit wallet PIN<input type="password" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,'').slice(0,4))} className="mt-2 w-full rounded-xl border p-3"/></label>
