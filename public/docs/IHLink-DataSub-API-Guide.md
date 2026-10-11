@@ -21,7 +21,7 @@ Every request requires `x-ihlink-api-key: YOUR_SECRET`. POST requests use `Conte
 | POST | `/purchase` | Submit one purchase with a unique merchant reference |
 | GET | `/transactions?reference=ORDER-1001` | Retrieve your own transaction and wallet refund status |
 
-`GET /products?service=DATA` filters the catalogue. Supported catalogue service codes are `DATA`, `AIRTIME`, `CABLE`, `ELECTRICITY` and `EXAM`; a service is available only when returned by the live catalogue. Network names and plan IDs must come from that response. Do not use an upstream provider's plan ID. Product names and prices may change; retrieve the latest quote and catalogue rather than hard-coding them.
+`GET /products?service=DATA` filters the catalogue. Supported catalogue service codes are `DATA`, `AIRTIME`, `CABLE`, `ELECTRICITY`, `EXAM`, `SMILE`, `ALPHA`, `KIRANI`, `DATA_CARD`, `RECHARGE_CARD` and `BULK_SMS`; a service is available only when returned by the live catalogue. Network names and plan IDs must come from that response. Do not use an upstream provider's plan ID. Product names and prices may change; retrieve the latest quote and catalogue rather than hard-coding them.
 
 Product fields: `plan_id`, `service`, `network`, `type`, `name`, `validity`, `price`. `GET /quote` returns `product_code`, `service_amount`, `fee`, total `amount` and `currency`. Airtime and electricity require a valid positive face-value `amount`; pass the quote's total as `expected_charge`. Other services use their configured plan price.
 
@@ -42,7 +42,11 @@ curl 'https://lnqsroyiybutkfngbyge.supabase.co/functions/v1/datasub-api/purchase
 | `amount` | Required for airtime/electricity amount-based services; face value in NGN |
 | `expected_charge` | Required for amount-based services; quote's total amount including any fee |
 | `meter_type` | Required for electricity: `PREPAID` or `POSTPAID` |
-| `quantity` | Exam services accept one PIN per transaction |
+| `quantity` | Card batches accept 1–100 cards; exam services accept one PIN |
+| `account_type` | Smile only: `PhoneNumber` or `AccountNumber` |
+| `card_name` | Optional card batch label, up to 80 characters |
+| `sender` | Bulk SMS sender, 2–11 letters, digits or spaces |
+| `message` | Bulk SMS: one supported message, up to 160 characters |
 | `ported` | Optional boolean for a ported phone number |
 
 Use an 11-digit Nigerian phone number beginning `07`, `08` or `09` for data and airtime. Electricity and cable account verification must be completed before taking the customer's money. This API currently has no customer-name verification endpoint; use the product account verification flow in DataSub or arrange that verification with IHLink before offering those services in your integration. Exam PIN and electricity-token delivery require confirmation of the returned service details; do not treat the catalogue alone as proof of a delivery-token interface.
@@ -81,3 +85,7 @@ Delivery is at least once. Return a 2xx response within eight seconds. Callback 
 ## Launch checklist for an API customer
 
 Confirm approval; test sandbox authentication and request formatting; host a signature-verifying HTTPS callback; store keys securely; fund your wallet; perform a small authorised live purchase; confirm its recipient received the service; check transaction lookup and callback history; test your own duplicate handling and revoked-key rejection. Hide any unavailable services automatically by refreshing `/products`. Contact IHLink through WhatsApp 0814 667 6278 with the merchant reference and time, never your secret key.
+
+## Card and SMS quantities
+
+Card quotes accept `quantity`. SMS quotes use `quantity` as recipient count; purchases normalise and deduplicate up to 100 comma-separated Nigerian mobile numbers in `recipient`. Unicode and multipart SMS are not currently supported. Successful owned transaction lookup includes `data.delivery.cards` when PIN delivery is available. Reusing a reference with changed quantity, message, sender or account details returns a conflict.
