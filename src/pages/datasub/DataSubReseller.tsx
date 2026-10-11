@@ -9,11 +9,10 @@ import { Users, TrendingUp, DollarSign, Gift, ArrowRight, ReceiptText, BarChart3
 import { supabase } from '@/lib/supabase';
 
 type ResellerLevel={code:string;name:string;minimum_monthly_sales:number;discount_percent:number;api_access:boolean};
-const fallbackLevels:ResellerLevel[]=[{code:'bronze',name:'Bronze',minimum_monthly_sales:0,discount_percent:1.5,api_access:false},{code:'silver',name:'Silver',minimum_monthly_sales:250000,discount_percent:2.5,api_access:false},{code:'gold',name:'Gold',minimum_monthly_sales:1000000,discount_percent:3.5,api_access:true},{code:'enterprise',name:'Enterprise',minimum_monthly_sales:5000000,discount_percent:5,api_access:true}];
-
 export function DataSubReseller() {
-  const [resellerLevels,setResellerLevels]=useState<ResellerLevel[]>(fallbackLevels);
-  useEffect(()=>{async function load(){if(!supabase)return;const {data}=await supabase.from('datasub_reseller_tiers').select('code,name,minimum_monthly_sales,discount_percent,api_access').eq('is_active',true).order('sort_order');const levels=(data||[]).map(row=>({...row,minimum_monthly_sales:Number(row.minimum_monthly_sales),discount_percent:Number(row.discount_percent)}));setResellerLevels(levels.length?levels:fallbackLevels);}void load();},[]);
+  const [resellerLevels,setResellerLevels]=useState<ResellerLevel[]>([]);
+  const [loading,setLoading]=useState(true),[error,setError]=useState(false);
+  useEffect(()=>{async function load(){if(!supabase){setError(true);setLoading(false);return;}const {data,error:loadError}=await supabase.from('datasub_reseller_tiers').select('code,name,minimum_monthly_sales,discount_percent,api_access').eq('is_active',true).order('sort_order');const levels=(data||[]).map(row=>({...row,minimum_monthly_sales:Number(row.minimum_monthly_sales),discount_percent:Number(row.discount_percent)}));setResellerLevels(loadError?[]:levels);setError(Boolean(loadError));setLoading(false);}void load();},[]);
   return (
     <PageShell product="datasub">
       <section className="relative overflow-hidden bg-gradient-to-br from-emerald-700 to-sky-500 text-white py-16">
@@ -26,7 +25,7 @@ export function DataSubReseller() {
               <p className="text-lg text-emerald-50 mb-6 max-w-xl">Upgrade from standard DataSub access to reseller capabilities, reseller pricing and a dedicated dashboard.</p>
               <Link to="/datasub/reseller-dashboard"><Button size="xl" className="bg-white text-emerald-600 hover:bg-gray-100">Become a Reseller</Button></Link>
             </div>
-            <div className="col-span-12 lg:col-span-5"><Card className="bg-white/10 border-white/20 text-white"><h2 className="text-xl font-bold">Reseller access</h2><p className="mt-2 text-sm text-emerald-50">Available tiers and pricing are managed from the live DataSub administration catalogue.</p></Card></div>
+            <div className="col-span-12 lg:col-span-5"><Card className="bg-white/10 border-white/20 text-white"><h2 className="text-xl font-bold">Reseller access</h2><p className="mt-2 text-sm text-emerald-50">Discover available reseller benefits and grow your business.</p></Card></div>
           </div>
         </div>
       </section>
@@ -35,7 +34,7 @@ export function DataSubReseller() {
         <h2 className="text-2xl font-extrabold text-ink mb-6 text-center">Reseller Benefits</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            { icon: DollarSign, title: 'Discounted Rates', desc: 'Tiered reseller discounts are designed to increase with qualifying sales volume; live rates are controlled by DataSub Operations.' },
+            { icon: DollarSign, title: 'Discounted Rates', desc: 'Tiered reseller discounts are designed to increase with qualifying sales volume; check available rates below.' },
             { icon: ReceiptText, title: 'Commission Ledger', desc: 'Review recorded reseller earnings from successful eligible sales in your reseller dashboard.' },
             { icon: BarChart3, title: 'Sales Overview', desc: 'Review recorded sales, profit, reseller pricing and recent commission activity from one dashboard.' },
             { icon: Gift, title: 'Upgrade Options', desc: 'Request available reseller or API-access upgrades as your business requirements grow.' },
@@ -54,7 +53,7 @@ export function DataSubReseller() {
       <section className="py-16 bg-surface">
         <div className="px-6 lg:px-10 max-w-[1280px] mx-auto">
           <h2 className="text-2xl font-extrabold text-ink mb-6 text-center">Reseller Levels</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {loading?<p role="status">Loading reseller levels…</p>:error?<p role="alert">Reseller levels could not be loaded. Please try again later.</p>:!resellerLevels.length?<p>No reseller levels are available at the moment.</p>:null}<div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {resellerLevels.map((l, i) => (
               <Card key={i} padding="lg" className="relative">
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-emerald-50 text-emerald-700"><span className="text-lg font-extrabold">{i + 1}</span></div>
