@@ -1,0 +1,3 @@
+create function private.datasub_exclude_vitel() returns trigger language plpgsql set search_path='' as $$begin if upper(coalesce(new.network,''))='VITEL' then new.customer_enabled:=false;end if;return new;end $$;
+revoke all on function private.datasub_exclude_vitel() from public,anon,authenticated;
+create trigger datasub_exclude_vitel before insert or update on public.datasub_catalog_offerings for each row execute function private.datasub_exclude_vitel();
