@@ -14,7 +14,7 @@ import { Grid3X3, Wallet, ReceiptText, Search } from 'lucide-react';
 
 type Offering={id:string;service_type:string;network:string|null;plan_type:string|null;name:string;validity:string|null;smart_earner_price:number};
 const labels:Record<string,string>={AIRTIME:'Airtime',DATA:'Mobile Data',CABLE:'Cable TV',ELECTRICITY:'Electricity',EXAM:'Education PIN',SMILE:'Smile',KIRANI:'Kirani',BULK_SMS:'Bulk SMS',DATA_CARD:'Data Cards',RECHARGE_CARD:'Recharge Cards',ALPHA:'Alpha'};
-const buyRoutes:Record<string,string>={AIRTIME:'/datasub/buy/airtime',DATA:'/datasub/buy/data',CABLE:'/datasub/buy/cable',ELECTRICITY:'/datasub/buy/electricity',EXAM:'/datasub/buy/education'};
+const buyRoutes:Record<string,string>={SMILE:'/datasub/buy/smile',ALPHA:'/datasub/buy/alpha',KIRANI:'/datasub/buy/kirani',DATA_CARD:'/datasub/buy/data-card',RECHARGE_CARD:'/datasub/buy/recharge-card',BULK_SMS:'/datasub/buy/bulk-sms',AIRTIME:'/datasub/buy/airtime',DATA:'/datasub/buy/data',CABLE:'/datasub/buy/cable',ELECTRICITY:'/datasub/buy/electricity',EXAM:'/datasub/buy/education'};
 const sections:SidebarSection[]=[{title:'Customer',items:[{label:'Dashboard',href:'/datasub/dashboard',icon:<Grid3X3 className="h-4 w-4"/>},{label:'All Services',href:'/datasub/services',icon:<Grid3X3 className="h-4 w-4"/>},{label:'Wallet',href:'/datasub/wallet',icon:<Wallet className="h-4 w-4"/>},{label:'Transactions',href:'/datasub/transactions',icon:<ReceiptText className="h-4 w-4"/>}]}];
 
 export function DataSubServices(){

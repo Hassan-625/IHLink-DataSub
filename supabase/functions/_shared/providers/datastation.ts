@@ -1,3 +1,4 @@
+import {supportsService} from '../extraServices.ts';
 import { verifiedReconciliation } from "./reconciliation.ts";
 export type ProviderResult={state:"SUCCESS"|"FAILED"|"UNKNOWN";reference?:string;raw:Record<string,unknown>;latency:number};
 
@@ -40,7 +41,7 @@ export async function health(){
 }
 export async function purchase(input:any,mapping:any,key:string){
   const svc=String(input.service||"DATA").toUpperCase(),network=networkIds[String(input.network||"").toUpperCase()];
-  let path="/data/",body:any={network,mobile_number:input.recipient,plan:Number(mapping.external_plan_id),Ported_number:!!input.ported};
+  if(!supportsService("datastation",svc))return {state:"FAILED" as const,raw:{validation:"Unsupported service"},latency:0};let path="/data/",body:any={network,mobile_number:input.recipient,plan:Number(mapping.external_plan_id),Ported_number:!!input.ported};
   if(svc==="AIRTIME"){path="/topup/";body={network,amount:input.amount,mobile_number:input.recipient,Ported_number:!!input.ported,airtime_type:"VTU"}}
   else if(svc==="CABLE"){path="/cablesub/";body={cablename:cableIds[String(input.network||"").toUpperCase()]??input.network,cableplan:Number(mapping.external_plan_id)||mapping.external_plan_id,smart_card_number:input.recipient}}
   else if(svc==="ELECTRICITY"){path="/billpayment/";body={disco_name:discoIds[String(input.network||"").toUpperCase()]??input.network,amount:input.amount,meter_number:input.recipient,MeterType:String(input.meter_type||"").toUpperCase()==="POSTPAID"?2:1}}

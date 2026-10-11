@@ -9,11 +9,12 @@ const nonNegative = (value: unknown, label: string) => {
 };
 
 // Amount means value delivered to the recipient. Fees are charged separately.
-export function quotePurchase(service: string, tier: CustomerTier, product: Record<string, any>, amount: unknown) {
+export function quotePurchase(service: string, tier: CustomerTier, product: Record<string, any>, amount: unknown, units = 1) {
   const dynamic = ['AIRTIME', 'ELECTRICITY'].includes(service.toUpperCase());
   if (!dynamic) {
     const field = { smart_earner: 'smart_earner_price', reseller: 'reseller_price', api_user: 'api_price', top_seller: 'top_seller_price' }[tier];
-    const charge = nonNegative(product[field], 'Product price');
+    if(!Number.isInteger(units)||units<1||units>100)throw new Error('Invalid purchase quantity');
+    const charge = nonNegative(product[field], 'Product price') * units;
     if (charge <= 0) throw new Error('Product price unavailable');
     return { serviceAmount: charge, fee: 0, charge: cents(charge) / 100, dynamic };
   }

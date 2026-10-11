@@ -4,7 +4,7 @@ import {Smartphone,Phone,Zap,Tv,GraduationCap,Wifi,MessageSquare,Printer,Ticket,
 import {loadLiveCatalogue} from '@/lib/datasubCatalogue';
 const names:Record<string,string>={DATA:'Buy data',AIRTIME:'Airtime',CABLE:'Cable TV',ELECTRICITY:'Electricity',EXAM:'Education PIN',SMILE:'Smile',KIRANI:'Kirani',BULK_SMS:'Bulk SMS',DATA_CARD:'Data cards',RECHARGE_CARD:'Recharge cards',ALPHA:'Alpha'};
 const icons:Record<string,LucideIcon>={DATA:Smartphone,AIRTIME:Phone,CABLE:Tv,ELECTRICITY:Zap,EXAM:GraduationCap,SMILE:Wifi,KIRANI:Wifi,BULK_SMS:MessageSquare,DATA_CARD:Ticket,RECHARGE_CARD:Printer};
-const routes:Record<string,string>={DATA:'/datasub/buy/data',AIRTIME:'/datasub/buy/airtime',CABLE:'/datasub/buy/cable',ELECTRICITY:'/datasub/buy/electricity',EXAM:'/datasub/buy/education'};
+const routes:Record<string,string>={SMILE:'/datasub/buy/smile',ALPHA:'/datasub/buy/alpha',KIRANI:'/datasub/buy/kirani',DATA_CARD:'/datasub/buy/data-card',RECHARGE_CARD:'/datasub/buy/recharge-card',BULK_SMS:'/datasub/buy/bulk-sms',DATA:'/datasub/buy/data',AIRTIME:'/datasub/buy/airtime',CABLE:'/datasub/buy/cable',ELECTRICITY:'/datasub/buy/electricity',EXAM:'/datasub/buy/education'};
 const order=['DATA','AIRTIME','CABLE','ELECTRICITY','EXAM','SMILE','KIRANI','BULK_SMS','DATA_CARD','RECHARGE_CARD','ALPHA'];
 export function NativeServiceGrid({categories,onSelect}:{categories?:string[];onSelect?:(value:string)=>void}){
  const [live,setLive]=useState<string[]>([]),[expanded,setExpanded]=useState(false),[error,setError]=useState(false);

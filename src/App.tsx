@@ -36,6 +36,7 @@ import { DataSubPrintCards } from "@/pages/datasub/DataSubPrintCards";
 import { DataSubDashboard } from "@/pages/datasub/DataSubDashboard";
 import { DataSubWallet } from "@/pages/datasub/DataSubWallet";
 import { DataSubTransactions } from "@/pages/datasub/DataSubTransactions";
+import {ExtraPurchaseFlow} from "@/pages/datasub/ExtraPurchaseFlow";
 import { PurchaseFlow } from "@/pages/datasub/PurchaseFlow";
 import { DataSubResellerDashboard } from "@/pages/datasub/DataSubResellerDashboard";
 import { DataSubApiDashboard } from "@/pages/datasub/DataSubApiDashboard";
@@ -368,6 +369,10 @@ export default function App() {
               DATASUB PURCHASE FLOWS
           ================================================== */}
 
+          <Route
+            path="/datasub/buy/:extra"
+            element={<ProtectedRoute product="datasub" requireServiceAccess><ExtraPurchaseFlow/></ProtectedRoute>}
+          />
           <Route
             path="/datasub/buy/airtime"
             element={
