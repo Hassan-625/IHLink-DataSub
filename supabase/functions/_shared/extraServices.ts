@@ -1,7 +1,7 @@
 export const extraServices=['SMILE','ALPHA','KIRANI','DATA_CARD','RECHARGE_CARD','BULK_SMS'];
 export function supportsService(provider:string,service:string){
  const standard=['DATA','AIRTIME','CABLE','ELECTRICITY','EXAM'];
- return standard.includes(service)||provider==='cashsub'&&extraServices.includes(service)||provider==='legitdataway'&&['SMILE','ALPHA','KIRANI'].includes(service);
+ return standard.includes(service)||provider==='cashsub'&&extraServices.includes(service)||provider==='legitdataway'&&extraServices.includes(service);
 }
 const phone=(value:string)=>value.replace(/[\s()-]/g,'').replace(/^(?:\+234|00234|234)/,'0');
 export function extraInput(service:string,body:any){
@@ -26,9 +26,13 @@ export function extraInput(service:string,body:any){
  return {recipient,units,quantity,account_type,sender,message,card_name};
 }
 export async function savePurchaseDelivery(client:any,transaction:any,raw:any){
+ const payload=raw?.api_response&&typeof raw.api_response==='object'?raw.api_response:raw;
+ const pins=typeof payload?.pin==='string'?payload.pin.split(',').map((x:string)=>x.trim()).filter(Boolean):[];
+ const serials=typeof payload?.serial==='string'?payload.serial.split(',').map((x:string)=>x.trim()):[];
  const values=raw?.api_response?.cards||raw?.cards||raw?.api_response?.pins||raw?.pins||(Array.isArray(raw?.api_response)?raw.api_response:undefined);
- if(!Array.isArray(values))return;
- const cards=values.map((x:any)=>typeof x==='string'?{pin:x}:({pin:String(x.pin??x.PIN??''),serial:String(x.serial??x.serial_number??'')})).filter((x:any)=>x.pin);
+ const entries=Array.isArray(values)?values:pins.map((pin:string,i:number)=>({pin,serial:serials[i]||''}));if(!entries.length)return;
+ const cards=entries.map((x:any)=>typeof x==='string'?{pin:x}:({pin:String(x.pin??x.PIN??''),serial:String(x.serial??x.serial_number??'')})).filter((x:any)=>x.pin);
  if(!cards.length)return;
- await client.from('datasub_purchase_deliveries').upsert({transaction_id:transaction.id,user_id:transaction.user_id,details:{cards}},{onConflict:'transaction_id'});
+ await client.from('datasub_purchase_deliveries').upsert({transaction_id:transaction.id,user_id:transaction.user_id,details:{cards,load_pin:String(payload?.load_pin||''),check_balance:String(payload?.check_balance||'')}},{onConflict:'transaction_id'});
 }
+
