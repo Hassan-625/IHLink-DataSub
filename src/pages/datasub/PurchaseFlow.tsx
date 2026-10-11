@@ -74,6 +74,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
   useEffect(()=>{if(supabase)void supabase.rpc("datasub_has_transaction_pin").then(r=>setHasTransactionPin(Boolean(r.data)));},[]);
   useEffect(()=>{let active=true;setProductsLoading(true);setLiveProducts([]);async function loadProducts(){try{if(!supabase)throw new Error('Unavailable');const rows=await loadLiveCatalogue(service);if(!active)return;setCatalogueError('');setLiveProducts(rows);const requested=params.get('product_id');const selected=rows.find(row=>row.id===requested);if(selected){setProvider(selected.provider);setSelection(selected.id);setDataType(dataPlanType(selected)||'all');setAmount(String(priceFor(selected)));setStep(service==='data'||service==='cable'||service==='education'?1:0);}}catch{if(active)setCatalogueError('Available plans could not be loaded. Please refresh before paying.');}finally{if(active)setProductsLoading(false);}}void loadProducts();return()=>{active=false;};},[service,params,priceFor]);
 
+  useEffect(()=>{let active=true;const refreshPrices=async()=>{if(processing||result!=='none')return;try{const rows=await loadLiveCatalogue(service);if(active){setLiveProducts(rows);setCatalogueError('');}}catch{if(active)setCatalogueError('Available plans could not be refreshed. Please try again before paying.');}};const focus=()=>void refreshPrices();const timer=window.setInterval(focus,60000);window.addEventListener('focus',focus);return()=>{active=false;window.clearInterval(timer);window.removeEventListener('focus',focus);};},[service,processing,result]);
   const chosen=(service==='data'||service==='cable'||service==='education')
     ? liveProducts.find(p=>p.id===selection)
     : liveProducts.find(p=>p.provider===provider && (service!=='electricity'||p.plan_category===String(params.get('meterType')||'prepaid').toLowerCase())) || liveProducts.find(p=>p.provider===provider);
@@ -99,6 +100,7 @@ export function PurchaseFlow({ service }: PurchaseFlowProps) {
       body:{product_id:chosen.id,recipient:recipient.trim(),amount:value,expected_charge:quote.charge,pin,meter_type:params.get('meterType')||undefined,quantity:service==='education'?1:undefined}
     });
     setProcessing(false);
+    if(error&&error.context?.status===409){const rows=await loadLiveCatalogue(service).catch(()=>null);if(rows)setLiveProducts(rows);setPin('');setStep(3);showToast('error','Price updated','Review the latest total and enter your PIN again. No purchase was submitted.');return;}
     if(error){setReference(idempotencyKey);setChargedAmount(quote.charge);setRefunded(false);setFailureMessage('We could not confirm the outcome. Check your transaction history before trying again.');setResult('pending');showToast('error','Confirmation unavailable','Check your transaction history before trying again.');return;}
     const transactionReference=String(data?.reference||data?.transaction?.reference||'');
     setReference(transactionReference);
