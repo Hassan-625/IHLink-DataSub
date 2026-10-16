@@ -1,4 +1,4 @@
-name: Disposable PostgreSQL refund and callback audit
+name: Disposable PostgreSQL refund and callback regression
 on:
   pull_request:
     paths:
@@ -39,7 +39,8 @@ jobs:
           psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260924203000_datasub_multi_provider_routing_core.sql
           psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260924210000_datasub_transaction_safety.sql
           psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260920170000_datasub_provider_operations.sql
-      - name: Characterize known refund and callback gaps
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20261016180000_datasub_wallet_refund_contract_hardening.sql
+      - name: Assert refund and callback safety contracts
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/10_refund_callback_characterization.sql
