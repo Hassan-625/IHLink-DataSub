@@ -1,0 +1,40 @@
+name: DataSub provider callback ledger integrity
+on:
+  push:
+    branches: [main, security/provider-callback-ledger-integrity]
+    paths:
+      - 'supabase/migrations/20261016160000_datasub_provider_callback_ledger_integrity.sql'
+      - 'tests/postgres/datasub-provider-callback-ledger.integration.sql'
+      - '.github/workflows/provider-callback-integrity.yml'
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261016160000_datasub_provider_callback_ledger_integrity.sql'
+      - 'tests/postgres/datasub-provider-callback-ledger.integration.sql'
+      - '.github/workflows/provider-callback-integrity.yml'
+jobs:
+  provider-callback-integrity:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: datasub_callback_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d datasub_callback_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/datasub_callback_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Apply isolated callback fixture and draft migration
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 --file tests/postgres/datasub-provider-callback-ledger.integration.sql
