@@ -6,6 +6,9 @@ CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE service_role NOLOGIN BYPASSRLS;
 CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS private;
+-- Stub authorization helper for policy compilation only; the disposable test uses service-role execution.
+CREATE FUNCTION private.has_product_access(text, text) RETURNS boolean LANGUAGE sql STABLE AS 'SELECT false';
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 CREATE TYPE public.datasub_transaction_status AS ENUM ('pending','success','failed','reversed');
 CREATE TABLE public.datasub_products (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
