@@ -44,3 +44,19 @@ jobs:
         env:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/10_refund_callback_characterization.sql
+
+      - name: Exercise simultaneous refund retries from separate PostgreSQL sessions
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/20_concurrent_refund_setup.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.refund_datasub_wallet('00000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000001',10,'REFUND:PG-CONCURRENT-REFUND');" > /tmp/refund-a.log &
+          first_pid=$!
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.refund_datasub_wallet('00000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000001',10,'REFUND:PG-CONCURRENT-REFUND');" > /tmp/refund-b.log &
+          second_pid=$!
+          wait "$first_pid"
+          wait "$second_pid"
+          cat /tmp/refund-a.log /tmp/refund-b.log
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT balance FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000002') <> 50 THEN RAISE EXCEPTION 'Concurrent refund changed wallet balance more than once'; END IF; IF (SELECT count(*) FROM public.wallet_ledger WHERE transaction_id='50000000-0000-0000-0000-000000000001' AND entry_type='refund') <> 1 THEN RAISE EXCEPTION 'Concurrent refund did not produce exactly one refund ledger row'; END IF; END \$\$;"
