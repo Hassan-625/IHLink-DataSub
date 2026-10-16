@@ -153,7 +153,7 @@ VALUES ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-00000000
 ON CONFLICT(id) DO NOTHING;
 SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001',15,'RESERVE:PG-CALLBACK-REVERSED');
 SELECT public.process_datasub_provider_callback('primary_vtu','PG-EVENT-REVERSED-01','PG-CALLBACK-REVERSED','reversed','provider-ref-reversed',null,10,'{"fixture":true}'::jsonb);
-DO $
+DO $$
 BEGIN
   IF (SELECT status FROM public.datasub_transactions WHERE id='60000000-0000-0000-0000-000000000001') <> 'reversed' THEN
     RAISE EXCEPTION 'Reversed provider outcome was incorrectly collapsed into failed';
@@ -164,9 +164,9 @@ BEGIN
   IF (SELECT balance FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000001') <> 1000 THEN
     RAISE EXCEPTION 'Reversed callback did not refund the reserved amount exactly once';
   END IF;
-END $;
+END $$;
 
-DO $
+DO $$
 BEGIN
   IF (SELECT count(*) FROM public.wallet_ledger WHERE user_id='00000000-0000-0000-0000-000000000001' AND entry_type='reserve')
      <> (SELECT count(*) FROM public.wallet_ledger WHERE user_id='00000000-0000-0000-0000-000000000001' AND entry_type='refund') THEN
