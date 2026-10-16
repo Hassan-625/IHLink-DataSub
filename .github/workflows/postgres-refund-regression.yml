@@ -1,0 +1,102 @@
+name: Disposable PostgreSQL refund and callback regression
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'tests/postgres/**'
+      - '.github/workflows/postgres-refund-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  postgres-characterization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: datasub_audit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d datasub_audit"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create disposable minimum schema
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/00_fixture.sql
+      - name: Apply actual checked-in DataSub SQL migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260924203000_datasub_multi_provider_routing_core.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260924210000_datasub_transaction_safety.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260920170000_datasub_provider_operations.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20261016180000_datasub_wallet_refund_contract_hardening.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20261016193000_datasub_late_refund_callback_guard.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20261016200000_datasub_late_refund_event_status_compat.sql
+      - name: Assert refund and callback safety contracts
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/10_refund_callback_characterization.sql
+
+      - name: Reject late success callback after refund credit
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/24_late_success_after_refund_credit.sql
+      - name: Reject stale reconciliation writes after callback settlement
+        env:
+          PGPASSWORD: postgres
+        run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/23_stale_reconciliation_after_callback.sql
+      - name: Race success and reversed provider callbacks from separate PostgreSQL sessions
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/22_callback_race_setup.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.process_datasub_provider_callback('primary_vtu','PG-EVENT-RACE-SUCCESS','PG-CALLBACK-RACE','success','provider-success-race',null,10,'{}'::jsonb);" > /tmp/callback-success.log &
+          success_pid=$!
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.process_datasub_provider_callback('primary_vtu','PG-EVENT-RACE-REVERSED','PG-CALLBACK-RACE','reversed','provider-reversed-race',null,10,'{}'::jsonb);" > /tmp/callback-reversed.log &
+          reversed_pid=$!
+          wait "$success_pid"
+          wait "$reversed_pid"
+          cat /tmp/callback-success.log /tmp/callback-reversed.log
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "DO \$\$ DECLARE s text; r text; b numeric; refunds integer; BEGIN SELECT status::text,routing_state INTO s,r FROM public.datasub_transactions WHERE id='80000000-0000-0000-0000-000000000001'; SELECT balance INTO b FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000004'; SELECT count(*) INTO refunds FROM public.wallet_ledger WHERE transaction_id='80000000-0000-0000-0000-000000000001' AND entry_type='refund'; IF s='success' AND r='SETTLED' AND b=40 AND refunds=0 THEN RETURN; END IF; IF s='reversed' AND r='REFUNDED' AND b=50 AND refunds=1 THEN RETURN; END IF; RAISE EXCEPTION 'Callback race violated terminal-state/ledger/balance invariant: status %, routing %, balance %, refunds %',s,r,b,refunds; END \$\$;"
+      - name: Exercise simultaneous reservation retries from separate PostgreSQL sessions
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/21_concurrent_reserve_setup.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000001',10,'RESERVE:PG-CONCURRENT-RESERVE');" > /tmp/reserve-a.log &
+          first_pid=$!
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000001',10,'RESERVE:PG-CONCURRENT-RESERVE');" > /tmp/reserve-b.log &
+          second_pid=$!
+          wait "$first_pid"
+          wait "$second_pid"
+          cat /tmp/reserve-a.log /tmp/reserve-b.log
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT balance FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000003') <> 40 THEN RAISE EXCEPTION 'Concurrent reservation debited wallet more than once'; END IF; IF (SELECT count(*) FROM public.wallet_ledger WHERE transaction_id='70000000-0000-0000-0000-000000000001' AND entry_type='reserve') <> 1 THEN RAISE EXCEPTION 'Concurrent reservation did not produce exactly one reserve ledger row'; END IF; END \$\$;"
+      - name: Exercise simultaneous refund retries from separate PostgreSQL sessions
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/20_concurrent_refund_setup.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.refund_datasub_wallet('00000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000001',10,'REFUND:PG-CONCURRENT-REFUND');" > /tmp/refund-a.log &
+          first_pid=$!
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.refund_datasub_wallet('00000000-0000-0000-0000-000000000002','50000000-0000-0000-0000-000000000001',10,'REFUND:PG-CONCURRENT-REFUND');" > /tmp/refund-b.log &
+          second_pid=$!
+          wait "$first_pid"
+          wait "$second_pid"
+          cat /tmp/refund-a.log /tmp/refund-b.log
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT balance FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000002') <> 50 THEN RAISE EXCEPTION 'Concurrent refund changed wallet balance more than once'; END IF; IF (SELECT count(*) FROM public.wallet_ledger WHERE transaction_id='50000000-0000-0000-0000-000000000001' AND entry_type='refund') <> 1 THEN RAISE EXCEPTION 'Concurrent refund did not produce exactly one refund ledger row'; END IF; END \$\$;"
