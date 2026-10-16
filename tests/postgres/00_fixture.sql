@@ -22,6 +22,8 @@ CREATE TABLE public.datasub_transactions (
   provider_reference text,
   service_type text NOT NULL DEFAULT 'data',
   metadata jsonb NOT NULL DEFAULT '{}'::jsonb,
+  routing_state text NOT NULL DEFAULT 'CREATED',
+  last_reconciled_at timestamptz,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE public.datasub_wallets (
