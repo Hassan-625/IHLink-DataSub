@@ -40,6 +40,7 @@ jobs:
           psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260924210000_datasub_transaction_safety.sql
           psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20260920170000_datasub_provider_operations.sql
           psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20261016180000_datasub_wallet_refund_contract_hardening.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f supabase/migrations/20261016193000_datasub_late_refund_callback_guard.sql
       - name: Assert refund and callback safety contracts
         env:
           PGPASSWORD: postgres
