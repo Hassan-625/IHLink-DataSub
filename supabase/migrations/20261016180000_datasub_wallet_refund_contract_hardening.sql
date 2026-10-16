@@ -25,12 +25,12 @@ begin
   if tx.id is null
      or tx.user_id <> p_user
      or tx.amount <> p_amount
-     or tx.status <> 'pending'
-     or tx.routing_state <> 'ROUTING'
      or p_reference is distinct from ('RESERVE:' || tx.reference) then
     return false;
   end if;
 
+  -- Check an exact prior reservation before current-state guards so a legitimate
+  -- retry remains idempotent after the transaction advances beyond ROUTING.
   select * into existing
   from public.wallet_ledger
   where reference = p_reference;
@@ -40,6 +40,10 @@ begin
       and existing.transaction_id = p_transaction
       and existing.entry_type = 'reserve'
       and existing.amount = p_amount;
+  end if;
+
+  if tx.status <> 'pending' or tx.routing_state <> 'ROUTING' then
+    return false;
   end if;
 
   select balance into wallet_balance
@@ -195,7 +199,7 @@ begin
     raise exception 'Transaction not found';
   end if;
 
-  if tx.provider <> p_provider_code then
+  if tx.provider is distinct from p_provider_code then
     update public.datasub_provider_events set processing_result='rejected' where id=event_id;
     raise exception 'Provider does not match transaction';
   end if;
@@ -228,8 +232,10 @@ begin
       raise exception 'Refund rejected: canonical reservation or transaction state is invalid';
     end if;
 
+    -- Preserve the provider's terminal outcome: 'reversed' must not be silently
+    -- collapsed into 'failed', because callers and reconciliation distinguish them.
     update public.datasub_transactions
-    set status='failed', routing_state='REFUNDED', last_reconciled_at=now(), updated_at=now()
+    set status=normalized_status, routing_state='REFUNDED', last_reconciled_at=now(), updated_at=now()
     where id=tx.id;
   end if;
 
@@ -243,7 +249,7 @@ begin
 
   return jsonb_build_object(
     'status','processed', 'reference',tx.reference,
-    'transaction_status',case when normalized_status='success' then 'success' else 'failed' end
+    'transaction_status',normalized_status
   );
 end;
 $$;
