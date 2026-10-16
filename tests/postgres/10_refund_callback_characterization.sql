@@ -19,6 +19,13 @@ BEGIN
   IF NOT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',100,'RESERVE:PG-REFUND-OWNER') THEN
     RAISE EXCEPTION 'Exact reservation retry should be idempotent';
   END IF;
+  UPDATE public.datasub_transactions SET routing_state='RECONCILING'
+  WHERE id='10000000-0000-0000-0000-000000000001';
+  IF NOT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001',100,'RESERVE:PG-REFUND-OWNER') THEN
+    RAISE EXCEPTION 'Exact reservation retry should remain idempotent after routing advances';
+  END IF;
+  UPDATE public.datasub_transactions SET routing_state='ROUTING'
+  WHERE id='10000000-0000-0000-0000-000000000001';
   IF public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000001',100,'RESERVE:PG-REFUND-OWNER') THEN
     RAISE EXCEPTION 'Mismatched reservation owner unexpectedly accepted';
   END IF;
@@ -139,7 +146,27 @@ BEGIN
   END IF;
 END $$;
 
-DO $$
+
+\echo 'Regression: reversed provider outcome preserves reversed terminal status while refunding exactly once.'
+INSERT INTO public.datasub_transactions(id,user_id,reference,amount,status,provider,routing_state)
+VALUES ('60000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','PG-CALLBACK-REVERSED',15,'pending','primary_vtu','ROUTING')
+ON CONFLICT(id) DO NOTHING;
+SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000001','60000000-0000-0000-0000-000000000001',15,'RESERVE:PG-CALLBACK-REVERSED');
+SELECT public.process_datasub_provider_callback('primary_vtu','PG-EVENT-REVERSED-01','PG-CALLBACK-REVERSED','reversed','provider-ref-reversed',null,10,'{"fixture":true}'::jsonb);
+DO $
+BEGIN
+  IF (SELECT status FROM public.datasub_transactions WHERE id='60000000-0000-0000-0000-000000000001') <> 'reversed' THEN
+    RAISE EXCEPTION 'Reversed provider outcome was incorrectly collapsed into failed';
+  END IF;
+  IF (SELECT routing_state FROM public.datasub_transactions WHERE id='60000000-0000-0000-0000-000000000001') <> 'REFUNDED' THEN
+    RAISE EXCEPTION 'Reversed transaction was not marked refunded';
+  END IF;
+  IF (SELECT balance FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000001') <> 1000 THEN
+    RAISE EXCEPTION 'Reversed callback did not refund the reserved amount exactly once';
+  END IF;
+END $;
+
+DO $
 BEGIN
   IF (SELECT count(*) FROM public.wallet_ledger WHERE user_id='00000000-0000-0000-0000-000000000001' AND entry_type='reserve')
      <> (SELECT count(*) FROM public.wallet_ledger WHERE user_id='00000000-0000-0000-0000-000000000001' AND entry_type='refund') THEN
