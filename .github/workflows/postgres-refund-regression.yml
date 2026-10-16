@@ -45,6 +45,21 @@ jobs:
           PGPASSWORD: postgres
         run: psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/10_refund_callback_characterization.sql
 
+      - name: Exercise simultaneous reservation retries from separate PostgreSQL sessions
+        env:
+          PGPASSWORD: postgres
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -f tests/postgres/21_concurrent_reserve_setup.sql
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000001',10,'RESERVE:PG-CONCURRENT-RESERVE');" > /tmp/reserve-a.log &
+          first_pid=$!
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000003','70000000-0000-0000-0000-000000000001',10,'RESERVE:PG-CONCURRENT-RESERVE');" > /tmp/reserve-b.log &
+          second_pid=$!
+          wait "$first_pid"
+          wait "$second_pid"
+          cat /tmp/reserve-a.log /tmp/reserve-b.log
+          psql -h localhost -U postgres -d datasub_audit -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF (SELECT balance FROM public.datasub_wallets WHERE user_id='00000000-0000-0000-0000-000000000003') <> 40 THEN RAISE EXCEPTION 'Concurrent reservation debited wallet more than once'; END IF; IF (SELECT count(*) FROM public.wallet_ledger WHERE transaction_id='70000000-0000-0000-0000-000000000001' AND entry_type='reserve') <> 1 THEN RAISE EXCEPTION 'Concurrent reservation did not produce exactly one reserve ledger row'; END IF; END \$\$;"
       - name: Exercise simultaneous refund retries from separate PostgreSQL sessions
         env:
           PGPASSWORD: postgres
