@@ -7,9 +7,10 @@ UPDATE public.datasub_provider_connections SET is_active=true,status='online'
 WHERE code IN ('primary_vtu','backup_vtu');
 INSERT INTO public.datasub_transactions(id,user_id,reference,amount,status,provider,routing_state)
 VALUES ('90000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000005',
-'PG-STALE-RECONCILE',15,'pending','primary_vtu','RECONCILING');
+'PG-STALE-RECONCILE',15,'pending','primary_vtu','ROUTING');
 SELECT public.reserve_datasub_wallet('00000000-0000-0000-0000-000000000005',
 '90000000-0000-0000-0000-000000000001',15,'RESERVE:PG-STALE-RECONCILE');
+UPDATE public.datasub_transactions SET routing_state='RECONCILING' WHERE id='90000000-0000-0000-0000-000000000001';
 SELECT public.process_datasub_provider_callback('primary_vtu','PG-EVENT-STALE-SETTLE',
 'PG-STALE-RECONCILE','success','provider-ref-stale',null,10,'{}'::jsonb);
 -- Model the reconciliation worker's guarded failure write using its original
