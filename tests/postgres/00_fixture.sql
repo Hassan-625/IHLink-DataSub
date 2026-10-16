@@ -1,6 +1,10 @@
 -- Disposable-only prerequisites for applying the checked-in DataSub migrations under test.
 -- Never run this fixture against a production database.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Supabase-like roles required by the checked-in migration GRANT/REVOKE statements.
+DO $ BEGIN CREATE ROLE anon NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $;
+DO $ BEGIN CREATE ROLE authenticated NOLOGIN; EXCEPTION WHEN duplicate_object THEN NULL; END $;
+DO $ BEGIN CREATE ROLE service_role NOLOGIN BYPASSRLS; EXCEPTION WHEN duplicate_object THEN NULL; END $;
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE TABLE auth.users (id uuid PRIMARY KEY);
 CREATE TYPE public.datasub_transaction_status AS ENUM ('pending','success','failed','reversed');
