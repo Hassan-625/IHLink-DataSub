@@ -76,6 +76,17 @@ grant execute on function public.refund_datasub_wallet(uuid,uuid,numeric,text) t
 
 insert into public.datasub_provider_connections(code,is_active) values ('cashsub',true),('datastation',true);
 
+create function public.fail_processed_event_for_test() returns trigger language plpgsql as $trigger$
+begin
+  if new.external_event_id='evt-rollback-01' and new.processing_result='processed' then
+    raise exception 'FORCED_CALLBACK_ROLLBACK';
+  end if;
+  return new;
+end;
+$trigger$;
+create trigger test_force_callback_rollback before update on public.datasub_provider_events
+for each row execute function public.fail_processed_event_for_test();
+
 \ir ../../supabase/migrations/20261016160000_datasub_provider_callback_ledger_integrity.sql
 
 -- Seed one normal reserved purchase, one provider mismatch purchase, one missing-reservation
@@ -84,16 +95,19 @@ insert into public.datasub_wallets(user_id,balance) values
 ('10000000-0000-0000-0000-000000000001',900),
 ('10000000-0000-0000-0000-000000000002',900),
 ('10000000-0000-0000-0000-000000000003',900),
-('10000000-0000-0000-0000-000000000004',900);
+('10000000-0000-0000-0000-000000000004',900),
+('10000000-0000-0000-0000-000000000005',900);
 insert into public.datasub_transactions(id,user_id,reference,amount,status,provider) values
 ('20000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000001','REF-FAILED',100,'pending','cashsub'),
 ('20000000-0000-0000-0000-000000000002','10000000-0000-0000-0000-000000000002','REF-MISMATCH',100,'pending','cashsub'),
 ('20000000-0000-0000-0000-000000000003','10000000-0000-0000-0000-000000000003','REF-NORESERVE',100,'pending','cashsub'),
-('20000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000004','REF-ROLLBACK',100,'pending','cashsub');
+('20000000-0000-0000-0000-000000000004','10000000-0000-0000-0000-000000000004','REF-ROLLBACK',100,'pending','cashsub'),
+('20000000-0000-0000-0000-000000000005','10000000-0000-0000-0000-000000000005','REF-REVERSED',100,'pending','cashsub');
 insert into public.wallet_ledger(user_id,transaction_id,entry_type,amount,reference) values
 ('10000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000001','reserve',100,'RESERVE:REF-FAILED'),
 ('10000000-0000-0000-0000-000000000002','20000000-0000-0000-0000-000000000002','reserve',100,'RESERVE:REF-MISMATCH'),
-('10000000-0000-0000-0000-000000000004','20000000-0000-0000-0000-000000000004','reserve',100,'RESERVE:REF-ROLLBACK');
+('10000000-0000-0000-0000-000000000004','20000000-0000-0000-0000-000000000004','reserve',100,'RESERVE:REF-ROLLBACK'),
+('10000000-0000-0000-0000-000000000005','20000000-0000-0000-0000-000000000005','reserve',100,'RESERVE:REF-REVERSED');
 
 do $$
 declare r jsonb; n integer; failed boolean := false;
@@ -120,13 +134,11 @@ begin
   if (select status from public.datasub_transactions where reference='REF-NORESERVE') <> 'pending' then raise exception 'FAIL: missing reservation changed transaction state'; end if;
   if (select balance from public.datasub_wallets where user_id='10000000-0000-0000-0000-000000000003') <> 900 then raise exception 'FAIL: missing reservation changed wallet balance'; end if;
 
-  create function public.fail_processed_event_for_test() returns trigger language plpgsql as $trigger$
-  begin
-    if new.external_event_id='evt-rollback-01' and new.processing_result='processed' then raise exception 'FORCED_CALLBACK_ROLLBACK'; end if;
-    return new;
-  end;
-  $trigger$;
-  create trigger test_force_callback_rollback before update on public.datasub_provider_events for each row execute function public.fail_processed_event_for_test();
+  r := public.process_datasub_provider_callback('cashsub','evt-reversed-01','REF-REVERSED','reversed','upstream-reversed');
+  if r->>'status' <> 'processed' then raise exception 'FAIL: expected reversed callback processed, got %',r; end if;
+  if (select status from public.datasub_transactions where reference='REF-REVERSED') <> 'reversed' then raise exception 'FAIL: transaction not marked reversed'; end if;
+  if (select balance from public.datasub_wallets where user_id='10000000-0000-0000-0000-000000000005') <> 1000 then raise exception 'FAIL: reversed transaction wallet not restored'; end if;
+  if (select count(*) from public.wallet_ledger where reference='REFUND:REF-REVERSED' and entry_type='refund') <> 1 then raise exception 'FAIL: reversed transaction refund ledger entry missing'; end if;
 
   begin
     perform public.process_datasub_provider_callback('cashsub','evt-rollback-01','REF-ROLLBACK','reversed','upstream-rollback');
