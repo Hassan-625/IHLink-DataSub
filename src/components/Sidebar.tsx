@@ -64,6 +64,8 @@ export function DashboardLayout({
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
   const roleKey = String(profile?.role || '');
+  const roleLabels: Record<string,string> = { super_admin: 'Super Administrator', platform_admin: 'Platform Administrator', content_admin: 'Content Administrator', support: 'Support', finance: 'Finance', customer: 'Customer' };
+  const displayedRole = roleLabels[roleKey] || userRole;
 
   const canSeeAdministration = profile?.status === 'active' && ['super_admin', 'platform_admin', 'content_admin', 'finance', 'support'].includes(roleKey);
   const visibleSections = sections.map(section => ({...section, items: section.items.filter(item => canSeeAdministration || !/(^|https?:\/\/[^/]+)\/admin(?:\/|$|[?#])/i.test(item.href))})).filter(section => section.items.length);
@@ -95,6 +97,8 @@ export function DashboardLayout({
         )}
 
         <nav className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto py-4 px-2">
+          <a href="https://ihlink-corporate.onrender.com/account/responsibilities" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-royal-700 hover:bg-royal-50">Navigate to My Responsibilities</a>
+          <a href="https://ihlink-corporate.onrender.com/account/responsibilities" className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-semibold text-royal-700 hover:bg-royal-50">Navigate to My Responsibilities</a>
           {visibleSections.map((section, si) => (
             <div key={si} className="mb-4">
               {section.title && !collapsed && (
@@ -181,7 +185,7 @@ export function DashboardLayout({
                 <Avatar name={userName} size="sm" />
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-bold text-ink leading-none">{userName}</p>
-                  <p className="text-xs text-muted mt-0.5">{userRole}</p>
+                  <p className="text-xs text-muted mt-0.5">{displayedRole}</p>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-muted" />
               </button>
