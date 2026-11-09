@@ -66,6 +66,8 @@ export function DashboardLayout({
   const roleKey = String(profile?.role || '');
   const roleLabels: Record<string,string> = { super_admin: 'Super Administrator', platform_admin: 'Platform Administrator', content_admin: 'Content Administrator', support: 'Support', finance: 'Finance', customer: 'Customer' };
   const displayedRole = roleLabels[roleKey] || userRole;
+  const roleLabels: Record<string,string> = { super_admin: 'Super Administrator', platform_admin: 'Platform Administrator', content_admin: 'Content Administrator', support: 'Support', finance: 'Finance', customer: 'Customer' };
+  const displayedRole = roleLabels[roleKey] || userRole;
 
   const canSeeAdministration = profile?.status === 'active' && ['super_admin', 'platform_admin', 'content_admin', 'finance', 'support'].includes(roleKey);
   const visibleSections = sections.map(section => ({...section, items: section.items.filter(item => canSeeAdministration || !/(^|https?:\/\/[^/]+)\/admin(?:\/|$|[?#])/i.test(item.href))})).filter(section => section.items.length);
