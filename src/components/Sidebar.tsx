@@ -64,6 +64,8 @@ export function DashboardLayout({
   const navigate = useNavigate();
   const { signOut, profile } = useAuth();
   const roleKey = String(profile?.role || '');
+  const roleLabels: Record<string,string> = { super_admin: 'Super Administrator', platform_admin: 'Platform Administrator', content_admin: 'Content Administrator', support: 'Support', finance: 'Finance', customer: 'Customer' };
+  const displayedRole = roleLabels[roleKey] || userRole;
 
   const canSeeAdministration = profile?.status === 'active' && ['super_admin', 'platform_admin', 'content_admin', 'finance', 'support'].includes(roleKey);
   const visibleSections = sections.map(section => ({...section, items: section.items.filter(item => canSeeAdministration || !/(^|https?:\/\/[^/]+)\/admin(?:\/|$|[?#])/i.test(item.href))})).filter(section => section.items.length);
@@ -181,7 +183,7 @@ export function DashboardLayout({
                 <Avatar name={userName} size="sm" />
                 <div className="hidden lg:block text-left">
                   <p className="text-sm font-bold text-ink leading-none">{userName}</p>
-                  <p className="text-xs text-muted mt-0.5">{userRole}</p>
+                  <p className="text-xs text-muted mt-0.5">{displayedRole}</p>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-muted" />
               </button>
